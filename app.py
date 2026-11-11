@@ -7,7 +7,6 @@ not used here.
 
 from datetime import date, time
 from pathlib import Path
-import base64
 import json
 
 import joblib
@@ -72,6 +71,34 @@ def incident_story(weather, surface, lighting, junction, speed_limit, area):
     return factors
 
 
+def what_happened(weather, surface, lighting, speed_limit, area, ksi):
+    """Illustrative sentence from the selected controls. Not a model cause."""
+    weather_l = str(weather).lower()
+    surface_l = str(surface).lower()
+    lighting_l = str(lighting).lower()
+    wet = any(word in surface_l for word in ("wet", "damp", "flood", "snow", "ice", "frost")) or any(
+        word in weather_l for word in ("rain", "snow")
+    )
+    if "fog" in weather_l:
+        setting = "foggy road"
+    elif wet and "darkness" in lighting_l:
+        setting = "dark, wet road"
+    elif wet:
+        setting = "wet road"
+    elif "darkness" in lighting_l:
+        setting = "dark road"
+    else:
+        setting = f"{str(area).lower()} road with a {int(speed_limit)} mph speed limit"
+    article = "an" if setting[:1].lower() in "aeiou" else "a"
+    setting = f"{article} {setting}"
+    kind = "stronger" if ksi else "mild"
+    return (
+        f"On {setting}, the fictional approaching vehicle brakes late and makes contact with the simulated car. "
+        f"The contact is a {kind}, non-graphic illustration. "
+        "This sequence illustrates a possible road scenario; the AI did not predict that this crash would happen."
+    )
+
+
 def render_explanation(model_frame, probability, threshold, decision, label):
     """SHAP section for the current scenario. Units are the model log-odds."""
     result = explain_frame(load_shap_explainer(checkpoint), checkpoint["model"], model_frame)
@@ -80,25 +107,9 @@ def render_explanation(model_frame, probability, threshold, decision, label):
 
     lines = contributor_lines(result, model_frame)
     st.write(
-        "These are SHAP contributions for this exact scenario on the deployed V3 model. "
-        "Each value is in raw-score units. V3 is a binary LightGBM model, so that raw score "
-        "is a log-odds. The probability shown above is the logistic function of the raw score. "
-        "The contributions are not percentage-point changes, and they are not proven accident causes."
-    )
-
-    base_col, link_col, raw_col, prob_col = st.columns(4)
-    base_col.metric("Baseline log-odds", f"{result['base_log_odds']:.4f}")
-    link_col.metric("Baseline through the logistic link", f"{result['baseline_via_logistic'] * 100:.2f}%")
-    raw_col.metric("This scenario's raw score", f"{result['raw_score']:.4f}")
-    prob_col.metric("This scenario's KSI probability", f"{result['probability'] * 100:.2f}%")
-    st.caption(
-        "The baseline is the expected raw score from TreeSHAP on this booster. "
-        f"{result['baseline_via_logistic'] * 100:.2f}% is the logistic function of that baseline, "
-        "not the average predicted probability across the training rows. "
-        f"All 35 contributions plus the baseline equal the raw score {result['raw_score']:.4f}. "
-        f"The logistic function of that score is the {result['probability'] * 100:.2f}% probability. "
-        f"Checked with SHAP {result['shap_version']} against LightGBM {result['lightgbm_version']} "
-        "pred_contrib, in the saved feature order."
+        "These are the five largest SHAP contributions for this scenario. "
+        "A positive value raises the model's raw KSI score. A negative value lowers it. "
+        "They describe the score, not a cause of a crash."
     )
 
     chart_rows = list(reversed(lines))
@@ -140,8 +151,23 @@ def render_explanation(model_frame, probability, threshold, decision, label):
     st.plotly_chart(fig, width="stretch")
     st.caption(
         "Amber bars increase the raw KSI score. Teal bars decrease it. "
-        "The five features are those with the largest absolute contribution in this scenario."
+        "Units are log-odds, not percentage points."
     )
+    with st.expander("Technical explanation"):
+        base_col, link_col, raw_col, prob_col = st.columns(4)
+        base_col.metric("Baseline log-odds", f"{result['base_log_odds']:.4f}")
+        link_col.metric("Baseline through the logistic link", f"{result['baseline_via_logistic'] * 100:.2f}%")
+        raw_col.metric("This scenario's raw score", f"{result['raw_score']:.4f}")
+        prob_col.metric("This scenario's KSI probability", f"{result['probability'] * 100:.2f}%")
+        st.caption(
+            "The baseline is the expected raw score from TreeSHAP on this booster. "
+            f"{result['baseline_via_logistic'] * 100:.2f}% is the logistic function of that baseline, "
+            "not the average predicted probability across the training rows. "
+            f"All 35 contributions plus the baseline equal the raw score {result['raw_score']:.4f}. "
+            f"The logistic function of that score is the {result['probability'] * 100:.2f}% probability. "
+            f"Checked with SHAP {result['shap_version']} against LightGBM {result['lightgbm_version']} "
+            "pred_contrib, in the saved feature order."
+        )
 
     for rank, row in enumerate(lines, start=1):
         movement = "increases" if row["increases_ksi"] else "decreases"
@@ -213,85 +239,85 @@ def choices(name: str) -> list[str]:
     return list(levels[name])
 
 
-def pick(options: list[str], preferred: str) -> int:
-    return options.index(preferred) if preferred in options else 0
-
-
 CSS = """
 <style>
 .stApp{
  background:
- radial-gradient(circle at 80% 0%,#123657 0%,transparent 35%),
- linear-gradient(145deg,#06101e,#081b2d 55%,#061321);
- color:#e8f5ff;
+ radial-gradient(circle at 80% 0%,#123657 0%,transparent 32%),
+ linear-gradient(160deg,#071421,#0a1c2e 60%,#071421);
+ color:#f4fbff;
 }
-.block-container{max-width:1450px;padding-top:1.4rem}
-h1,h2,h3,p,label{color:#e8f5ff!important}
+.block-container{max-width:1180px;padding-top:1rem}
+h1,h2,h3{color:#f4fbff}
 div[data-testid="stForm"]{
- background:#0d2137;
- border:1px solid #27506a;
+ background:#10283f;
+ border:1px solid #3d7e9a;
  border-radius:18px;
- padding:20px;
+ padding:18px;
 }
 div[data-testid="stMetric"]{
- background:#10263d;
- border:1px solid #2a5570;
- border-radius:15px;
- padding:15px;
+ background:#123049;
+ border:1px solid #3d7e9a;
+ border-radius:14px;
+ padding:12px;
+}
+div[data-testid="stMetricValue"], div[data-testid="stMetricValue"] *{color:#f7fbff !important}
+div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] *{color:#d5eaf6 !important}
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stRadio"] [data-testid="stWidgetLabel"] p,
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stCaptionContainer"] p{
+ color:#f4fbff !important;
+}
+div[data-testid="stCaptionContainer"] p{color:#c5dcea !important}
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"]{
+ background:#123049 !important;
+ border-color:#3d8eab !important;
+}
+div[data-baseweb="select"] *,
+div[data-baseweb="input"] *,
+input, textarea{
+ color:#f7fbff !important;
+ -webkit-text-fill-color:#f7fbff !important;
+}
+div[data-baseweb="popover"], div[data-baseweb="menu"]{background:#123049 !important}
+div[data-baseweb="popover"] li,
+div[data-baseweb="menu"] li{
+ color:#f7fbff !important;
+ -webkit-text-fill-color:#f7fbff !important;
+ background:#123049 !important;
 }
 div[data-testid="stAlert"]{border-radius:12px}
-.stButton button[kind="primary"],div[data-testid="stFormSubmitButton"] button{
+.stButton button, div[data-testid="stFormSubmitButton"] button{
+ background:#18486a; color:#f7fbff; border:1px solid #3d8eab; font-weight:700;
+}
+.stButton button[kind="primary"], div[data-testid="stFormSubmitButton"] button{
  background:linear-gradient(90deg,#08b7d1,#7737d7);
- border:0;color:white;
- font-weight:700;
+ border:0; color:#ffffff; font-weight:800;
 }
-section[data-testid="stSidebar"]{background:#09192a}
-.hero{
- position:relative;
- border-radius:22px;
- border:1px solid #28708a;
- overflow:hidden;
- background:#10243a;
- min-height:310px;
-}
-.hero img{width:100%;height:310px;object-fit:cover}
-.hero-overlay{
- position:absolute;inset:0;
- background:linear-gradient(90deg,#031121f2 0%,#031121d9 38%,transparent 75%);
- display:flex;flex-direction:column;justify-content:center;
- padding:38px;
-}
-.hero-title{font-size:clamp(34px,5vw,65px);font-weight:900;line-height:1.1}
-.hero-sub{color:#c0e7f4;max-width:560px;margin-top:16px}
-.kicker{letter-spacing:3px;color:#67e8f9;font-size:12px;font-weight:800}
-@media(max-width:700px){
- .hero-overlay{padding:18px}
- .hero{min-height:260px}
- .hero img{height:260px}
+.result-grid{display:grid;grid-template-columns:1.3fr .9fr .9fr;gap:12px;margin:8px 0 16px}
+.result-card{background:#123049;border:1px solid #3d7e9a;border-radius:16px;padding:16px 18px}
+.result-card .k{color:#c5dcea;font-size:13px;font-weight:700;letter-spacing:.04em}
+.result-card .v{color:#67e8f9;font-size:42px;font-weight:850;line-height:1.1;margin-top:4px}
+.result-card .v.plain{color:#f7fbff;font-size:28px}
+.result-card .s{color:#d7eef8;font-size:14px;line-height:1.4;margin-top:6px}
+.compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:800px){
+ .result-grid,.compare{grid-template-columns:1fr}
+ .result-card .v{font-size:34px}
 }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-hero64 = base64.b64encode((ROOT / "hero.svg").read_bytes()).decode()
-st.markdown(
-    '<div class="hero">'
-    '<img src="data:image/svg+xml;base64,' + hero64 + '">'
-    '<div class="hero-overlay">'
-    '<div class="kicker">V3 · PRE-CRASH SEVERITY</div>'
-    '<div class="hero-title">SafeRoute<span style="color:#67e8f9">-AI</span></div>'
-    '<div class="hero-sub">Set the road, the weather, and your own vehicle, '
-    "then see the conditional chance of a serious or fatal injury if a "
-    "crash were recorded.</div>"
-    "</div></div>",
-    unsafe_allow_html=True,
-)
-st.caption(
-    "Research prototype · UK historical accident records · "
-    "Not a live road-safety or accident-likelihood prediction system."
-)
+hero_html = (ROOT / "hero_stage.html").read_text(encoding="utf-8")
+components.html(hero_html, height=620, scrolling=False)
 
-st.header("01 / Create Your Road Scenario")
+st.markdown('<div id="scenario-anchor"></div>', unsafe_allow_html=True)
+st.header("Quick Scenario")
 
 road_classes = choices("1st_Road_Class")
 road_types = choices("Road_Type")
@@ -317,78 +343,97 @@ human_labels = [
     ])
 ]
 
+SCENARIO_DEFAULTS = {
+    "road_class": "A" if "A" in road_classes else road_classes[0],
+    "second_class": "Unclassified" if "Unclassified" in second_classes else second_classes[0],
+    "road_type": "Single carriageway" if "Single carriageway" in road_types else road_types[0],
+    "speed_limit": 30,
+    "area": "Urban" if "Urban" in areas else areas[0],
+    "weather": "Fine no high winds" if "Fine no high winds" in weathers else weathers[0],
+    "surface": "Dry" if "Dry" in surfaces else surfaces[0],
+    "lighting": "Daylight" if "Daylight" in lights else lights[0],
+    "junction_control": "Not at junction or within 20 metres",
+    "junction_detail": "Not at junction or within 20 metres",
+    "scenario_date": date(2013, 6, 15),
+    "scenario_time": time(14, 0),
+    "latitude": 52.239552,
+    "longitude": -1.350476,
+    "physical_label": physical_labels[0],
+    "human_label": human_labels[0],
+    "ego_type": "Car" if "Car" in vehicle_types else vehicle_types[0],
+    "ego_age": 5.0,
+    "ego_band": "26 - 35" if "26 - 35" in age_bands else age_bands[0],
+    "ego_engine": 1600.0,
+    "ego_purpose": "Commuting to/from work" if "Commuting to/from work" in purposes else purposes[0],
+}
+for _key, _value in SCENARIO_DEFAULTS.items():
+    st.session_state.setdefault(_key, _value)
+
+PRESETS = {
+    "Urban daytime commute": dict(SCENARIO_DEFAULTS),
+    "Rural high-speed road": {
+        **SCENARIO_DEFAULTS,
+        "area": "Rural" if "Rural" in areas else SCENARIO_DEFAULTS["area"],
+        "speed_limit": 70,
+        "road_type": "Single carriageway" if "Single carriageway" in road_types else SCENARIO_DEFAULTS["road_type"],
+    },
+    "Rainy evening journey": {
+        **SCENARIO_DEFAULTS,
+        "weather": "Raining no high winds" if "Raining no high winds" in weathers else SCENARIO_DEFAULTS["weather"],
+        "surface": "Wet or damp" if "Wet or damp" in surfaces else SCENARIO_DEFAULTS["surface"],
+        "lighting": "Darkness - lights lit" if "Darkness - lights lit" in lights else SCENARIO_DEFAULTS["lighting"],
+        "scenario_time": time(19, 0),
+        "speed_limit": 30,
+        "area": "Urban" if "Urban" in areas else SCENARIO_DEFAULTS["area"],
+    },
+}
+
+st.caption("Example presets fill the real model inputs. The probability is calculated, not stored.")
+preset_cols = st.columns(3)
+for preset_name, preset_col in zip(PRESETS, preset_cols):
+    if preset_col.button(preset_name, width="stretch"):
+        for preset_key, preset_value in PRESETS[preset_name].items():
+            st.session_state[preset_key] = preset_value
+
 with st.form("scenario_form"):
-    a, b, c = st.columns(3)
+    q1, q2, q3 = st.columns(3)
+    with q1:
+        road_type = st.selectbox("Road type", road_types, key="road_type")
+        speed_limit = st.selectbox("Speed limit (mph)", [10, 20, 30, 40, 50, 60, 70], key="speed_limit")
+    with q2:
+        weather = st.selectbox("Weather", weathers, key="weather")
+        lighting = st.selectbox("Lighting", lights, key="lighting")
+    with q3:
+        area = st.selectbox("Urban / Rural", areas, key="area")
+        ego_type = st.selectbox("Vehicle type", vehicle_types, key="ego_type")
 
-    with a:
-        road_class = st.selectbox("Road class", road_classes, index=pick(road_classes, "A"))
-        second_class = st.selectbox(
-            "Second road class",
-            second_classes,
-            index=pick(second_classes, "Unclassified"),
-        )
-        road_type = st.selectbox(
-            "Road type", road_types, index=pick(road_types, "Single carriageway")
-        )
-        speed_limit = st.selectbox("Speed limit (mph)", [10, 20, 30, 40, 50, 60, 70], index=2)
-        area = st.selectbox("Urban / Rural", areas, index=pick(areas, "Urban"))
+    with st.expander("Advanced Settings"):
+        a1, a2, a3 = st.columns(3)
+        with a1:
+            road_class = st.selectbox("Road class", road_classes, key="road_class")
+            second_class = st.selectbox("Second road class", second_classes, key="second_class")
+            surface = st.selectbox("Road surface", surfaces, key="surface")
+            junction_control = st.selectbox("Junction control", junction_controls, key="junction_control")
+            junction_detail = st.selectbox("Junction detail", junction_details, key="junction_detail")
+        with a2:
+            physical_label = st.selectbox("Pedestrian crossing", physical_labels, key="physical_label")
+            human_label = st.selectbox("Crossing human control", human_labels, key="human_label")
+            scenario_date = st.date_input(
+                "Scenario date",
+                min_value=date(2009, 1, 1),
+                max_value=date(2015, 12, 31),
+                key="scenario_date",
+            )
+            scenario_time = st.time_input("Time", key="scenario_time")
+            latitude = st.number_input("Latitude", 49.9, 60.7, format="%.6f", key="latitude")
+            longitude = st.number_input("Longitude", -7.6, 1.8, format="%.6f", key="longitude")
+        with a3:
+            ego_band = st.selectbox("Driver age band", age_bands, key="ego_band")
+            ego_age = st.number_input("Vehicle age (years)", 0.0, 50.0, step=1.0, key="ego_age")
+            ego_engine = st.number_input("Engine capacity (cc)", 50.0, 8000.0, step=50.0, key="ego_engine")
+            ego_purpose = st.selectbox("Journey purpose", purposes, key="ego_purpose")
 
-    with b:
-        weather = st.selectbox(
-            "Weather", weathers, index=pick(weathers, "Fine no high winds")
-        )
-        surface = st.selectbox(
-            "Road surface", surfaces, index=pick(surfaces, "Dry")
-        )
-        lighting = st.selectbox("Lighting", lights, index=pick(lights, "Daylight"))
-        junction_control = st.selectbox(
-            "Junction control",
-            junction_controls,
-            index=pick(junction_controls, "Not at junction or within 20 metres"),
-        )
-        junction_detail = st.selectbox(
-            "Junction detail",
-            junction_details,
-            index=pick(junction_details, "Not at junction or within 20 metres"),
-        )
-
-    with c:
-        scenario_date = st.date_input(
-            "Scenario date",
-            value=date(2013, 6, 15),
-            min_value=date(2009, 1, 1),
-            max_value=date(2015, 12, 31),
-        )
-        scenario_time = st.time_input("Time", value=time(14, 0))
-        latitude = st.number_input("Latitude", 49.9, 60.7, 52.239552, format="%.6f")
-        longitude = st.number_input("Longitude", -7.6, 1.8, -1.350476, format="%.6f")
-        physical_label = st.selectbox("Pedestrian crossing", physical_labels, index=0)
-        human_label = st.selectbox("Crossing human control", human_labels, index=0)
-
-    st.markdown("**Your vehicle (known before travel)**")
-    d, e, f = st.columns(3)
-    with d:
-        ego_type = st.selectbox(
-            "Vehicle type", vehicle_types, index=pick(vehicle_types, "Car")
-        )
-        ego_age = st.number_input("Vehicle age (years)", 0.0, 50.0, 5.0, step=1.0)
-    with e:
-        ego_band = st.selectbox(
-            "Driver age band", age_bands, index=pick(age_bands, "26 - 35")
-        )
-        ego_engine = st.number_input("Engine capacity (cc)", 50.0, 8000.0, 1600.0, step=50.0)
-    with f:
-        ego_purpose = st.selectbox(
-            "Journey purpose",
-            purposes,
-            index=pick(purposes, "Commuting to/from work"),
-        )
-
-    submitted = st.form_submit_button(
-        "UPDATE SIMULATION & RUN AI",
-        type="primary",
-        width="stretch",
-    )
+    submitted = st.form_submit_button("RUN AI SIMULATION", type="primary", width="stretch")
 
 hour = scenario_time.hour
 weekend = int(scenario_date.weekday() >= 5)
@@ -481,6 +526,9 @@ config = {
     "ksi": bool(probability >= threshold),
     "severity": label,
     "mechanism": " ".join(story),
+    "what_happened": what_happened(
+        weather, surface, lighting, speed_limit, area, bool(probability >= threshold)
+    ),
     "conditions": [
         f"Weather: {weather}",
         f"Road surface: {surface}",
@@ -493,7 +541,7 @@ config = {
 }
 html = (ROOT / "simulator.html").read_text(encoding="utf-8")
 html = html.replace("__CONFIG__", json.dumps(config))
-components.html(html, height=760, scrolling=False)
+components.html(html, height=980, scrolling=False)
 st.caption(
     "START DRIVE and FICTIONAL INCIDENT play a fictional collision for the predicted class. "
     "KSI is the stronger illustration and Slight is the lighter one. "
@@ -501,47 +549,28 @@ st.caption(
     "if an accident were recorded, not the chance that a crash will occur."
 )
 
-st.header("03 / AI Severity Intelligence")
-left, right = st.columns([1.15, 1])
+st.header("Result")
+st.markdown(
+    "<div class='result-grid'>"
+    "<div class='result-card'><div class='k'>CONDITIONAL KSI PROBABILITY</div>"
+    f"<div class='v'>{probability * 100:.2f}%</div>"
+    "<div class='s'>Share of similar recorded accidents with a serious or fatal injury. "
+    "This is not the chance that a crash will occur.</div></div>"
+    "<div class='result-card'><div class='k'>CLASSIFICATION</div>"
+    f"<div class='v plain'>{label}</div>"
+    f"<div class='s'>Selected threshold {threshold:.3f} · {decision['name']} mode.</div></div>"
+    "<div class='result-card'><div class='k'>WHAT THIS MEANS</div>"
+    "<div class='s'>The probability stays the same if you only change the decision threshold. "
+    f"Standard mode uses 0.175. Safety-focused mode uses 0.145 and flags more KSI cases, "
+    "with more false alarms. Validation for this mode: "
+    f"accuracy {decision['accuracy']}, KSI recall {decision['recall']}, "
+    f"precision {decision['precision']}. ROC-AUC {validation['roc_auc']:.4f}, "
+    f"PR-AUC {validation['pr_auc']:.4f}.</div></div>"
+    "</div>",
+    unsafe_allow_html=True,
+)
 
-with left:
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=probability * 100,
-        number={"suffix": "%", "font": {"color": "#67e8f9", "size": 48}},
-        title={"text": "Conditional KSI estimate", "font": {"color": "#cde7f4"}},
-        gauge={
-            "axis": {"range": [0, 100], "tickcolor": "#bcdbe9"},
-            "bar": {"color": "#22d3ee"},
-            "bgcolor": "#10243a",
-            "borderwidth": 0,
-            "steps": [{"range": [0, 100], "color": "#1a344d"}],
-            "threshold": {"line": {"color": "#bb86fc", "width": 5}, "value": threshold * 100},
-        },
-    ))
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#e7f7ff"},
-        height=340,
-        margin=dict(l=25, r=25, t=45, b=10),
-    )
-    st.plotly_chart(fig, width="stretch")
-
-with right:
-    st.metric("Estimated conditional KSI probability", f"{probability * 100:.2f}%")
-    st.metric("Classification at the selected threshold", label)
-    st.write(f"Selected decision threshold: **{threshold:.3f}** ({decision['name']})")
-    st.write("The original model threshold of **0.175** is unchanged.")
-    st.info(
-        "The model estimates injury severity among recorded accidents. "
-        "It does not estimate whether a crash will occur. "
-        f"Selected mode on 2014–2015 validation: accuracy {decision['accuracy']}, "
-        f"KSI recall {decision['recall']}, KSI precision {decision['precision']}. "
-        f"Ranking quality is unchanged: ROC-AUC {validation['roc_auc']:.4f}, "
-        f"PR-AUC {validation['pr_auc']:.4f}."
-    )
-
-st.header("Understanding the AI Prediction")
+st.header("Why this score?")
 try:
     render_explanation(model_frame, probability, threshold, decision, label)
 except Exception as exc:
@@ -550,7 +579,7 @@ except Exception as exc:
 @st.fragment
 def show_comparison(raw, probability, weather, surface, weathers, surfaces, checkpoint, model_frame):
     """Isolated so these controls do not remount the road simulator."""
-    st.header("04 / Compare Road Conditions")
+    st.header("Compare conditions")
     x1, x2 = st.columns(2)
     with x1:
         alt_weather = st.selectbox(
@@ -571,26 +600,22 @@ def show_comparison(raw, probability, weather, surface, weathers, surfaces, chec
     alternative["Weather_Conditions"] = alt_weather
     alternative["Road_Surface_Conditions"] = alt_surface
     alt_prob = predict_ksi(alternative, checkpoint)
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Bar(
-        x=[probability * 100, alt_prob * 100],
-        y=["Current", "Alternative"],
-        orientation="h",
-        marker_color=["#22d3ee", "#a78bfa"],
-        text=[f"{probability * 100:.2f}%", f"{alt_prob * 100:.2f}%"],
-        textposition="outside",
-    ))
-    fig2.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#d8efff"},
-        xaxis_title="Conditional KSI estimate (%)",
-        xaxis_range=[0, max(25, probability * 120, alt_prob * 120)],
-        height=300,
-        margin=dict(l=10, r=60, t=15, b=30),
+    delta_points = (alt_prob - probability) * 100
+    st.markdown(
+        "<div class='compare'>"
+        "<div class='result-card'><div class='k'>CURRENT SCENARIO</div>"
+        f"<div class='v'>{probability * 100:.2f}%</div>"
+        f"<div class='s'>{weather}<br>{surface}</div></div>"
+        "<div class='result-card'><div class='k'>ALTERNATIVE SCENARIO</div>"
+        f"<div class='v'>{alt_prob * 100:.2f}%</div>"
+        f"<div class='s'>{alt_weather}<br>{alt_surface}</div></div>"
+        "<div class='result-card'><div class='k'>DIFFERENCE</div>"
+        f"<div class='v plain'>{delta_points:+.2f} pp</div>"
+        "<div class='s'>Percentage points between the two model scores. "
+        "This is not a measured causal effect.</div></div>"
+        "</div>",
+        unsafe_allow_html=True,
     )
-    st.plotly_chart(fig2, width="stretch")
 
     with st.expander("View exact model inputs"):
         shown = model_frame.iloc[0].astype(str).rename("value").to_frame()

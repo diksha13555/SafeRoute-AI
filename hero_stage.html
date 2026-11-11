@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#071421;color:#f4fbff;font-family:"Segoe UI",Arial,sans-serif}
+.stage{position:relative;height:100%;overflow:hidden;border-radius:22px;border:1px solid #1e6f8c}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.veil{
+ position:absolute;inset:0;
+ background:linear-gradient(90deg,#04101bf0 0%,#04101bcc 46%,transparent 74%);
+ display:flex;flex-direction:column;justify-content:center;padding:36px 40px;gap:16px;
+ pointer-events:none;
+}
+.veil button,.veil a{pointer-events:auto}
+.kicker{letter-spacing:.22em;color:#67e8f9;font-size:12px;font-weight:800}
+h1{margin:0;font-size:clamp(34px,5vw,62px);line-height:1.02;font-weight:850}
+h1 span{color:#67e8f9}
+.lead{margin:0;max-width:560px;color:#d7eef8;font-size:16px;line-height:1.45}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:760px}
+.step{background:#0c2238cc;border:1px solid #2a6d88;border-radius:14px;padding:12px 12px 10px}
+.step b{display:block;color:#67e8f9;font-size:11px;letter-spacing:.08em;margin-bottom:4px}
+.step span{display:block;color:#f7fbff;font-size:13px;line-height:1.35}
+button{
+ margin-top:4px;width:max-content;border:0;cursor:pointer;color:#041018;font-weight:800;
+ background:linear-gradient(100deg,#67e8f9,#22d3ee);border-radius:999px;padding:12px 18px;font-size:15px;
+}
+button:hover{filter:brightness(1.06)}
+.note{color:#b7d4e4;font-size:12px;max-width:640px}
+@media(max-width:800px){
+ .veil{
+  padding:28px 14px 20px;
+  justify-content:flex-start;
+  background:linear-gradient(#04101bf2 0%,#04101be6 72%,#04101b55 100%);
+ }
+ .steps{grid-template-columns:1fr}
+ .lead{font-size:15px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+ <canvas id="c"></canvas>
+ <div class="veil">
+  <div class="kicker">EDUCATIONAL INJURY SEVERITY</div>
+  <h1>SafeRoute<span>-AI</span></h1>
+  <p class="lead">If a road accident has already been recorded, the model estimates whether the injury is serious or fatal, or slight. It does not estimate whether a crash will happen.</p>
+  <div class="steps">
+   <div class="step"><b>STEP 1</b><span>Choose road, weather, and vehicle conditions.</span></div>
+   <div class="step"><b>STEP 2</b><span>The AI estimates serious or fatal injury severity conditional on a recorded accident.</span></div>
+   <div class="step"><b>STEP 3</b><span>Explore a fictional incident and see why the model assigned its score.</span></div>
+  </div>
+  <button id="explore" type="button">Explore the Simulation</button>
+  <div class="note">A research view of historical UK accident records. Not a live warning system.</div>
+ </div>
+</div>
+<script>
+const c = document.getElementById("c");
+const g = c.getContext("2d");
+let W = 900, H = 520, t0 = performance.now();
+function resize(){
+  const r = c.getBoundingClientRect();
+  W = Math.max(320, r.width); H = Math.max(320, r.height);
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  c.width = Math.round(W * d); c.height = Math.round(H * d);
+  g.setTransform(d, 0, 0, d, 0, 0);
+}
+window.addEventListener("resize", resize); resize();
+function lerp(a,b,t){ return a+(b-a)*t; }
+function project(z, lane){
+  const zz = Math.max(0.02, Math.min(1, z));
+  const horizon = H * 0.42;
+  const y = horizon + Math.pow(zz, 1.25) * (H * 0.98 - horizon);
+  const half = lerp(W * 0.03, W * 0.46, zz);
+  return {x: W*0.5 + lane*half, y, scale: lerp(0.16, 1, zz)};
+}
+function car(x, y, scale, color, front){
+  const s = scale, w = 72*s, h = 40*s;
+  g.save(); g.translate(x, y+2*s); g.scale(1, 0.3);
+  g.beginPath(); g.ellipse(0,0,w*0.5,h*0.45,0,0,Math.PI*2);
+  g.fillStyle = "rgba(0,0,0,.35)"; g.fill(); g.restore();
+  g.fillStyle = "#111";
+  g.fillRect(x-w*0.42, y-h*0.18, w*0.16, h*0.2);
+  g.fillRect(x+w*0.26, y-h*0.18, w*0.16, h*0.2);
+  g.fillStyle = color;
+  g.beginPath(); g.roundRect(x-w*0.46, y-h*0.95, w*0.92, h*0.78, 8*s); g.fill();
+  g.fillStyle = front ? "#d7f4ff" : "#ffb4b4";
+  g.fillRect(x-w*0.28, y-h*(front?0.82:0.28), w*0.18, h*0.12);
+  g.fillRect(x+w*0.10, y-h*(front?0.82:0.28), w*0.18, h*0.12);
+}
+function frame(now){
+  const t = (now - t0) / 1000;
+  const cycle = t % 24;
+  const night = cycle > 12 && cycle < 20;
+  const rain = cycle > 6 && cycle < 12;
+  const fog = cycle > 20;
+  g.clearRect(0,0,W,H);
+  const sky = g.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0, night ? "#07111f" : "#156ea8");
+  sky.addColorStop(1, night ? "#16324a" : "#d7f3fb");
+  g.fillStyle = sky; g.fillRect(0,0,W,H);
+  const bodyR = W < 700 ? 10 : (night ? 16 : 22);
+  const bodyX = W < 700 ? W - 24 : W * 0.86;
+  const bodyY = W < 700 ? 18 : H * 0.14;
+  g.fillStyle = night ? "#fff6d2" : "#ffe38a";
+  g.beginPath(); g.arc(bodyX, bodyY, bodyR, 0, 6.3); g.fill();
+  const farL = project(0.02,-1), farR = project(0.02,1), nearR = project(1,1), nearL = project(1,-1);
+  g.beginPath(); g.moveTo(farL.x,farL.y); g.lineTo(farR.x,farR.y); g.lineTo(nearR.x,nearR.y); g.lineTo(nearL.x,nearL.y); g.closePath();
+  g.fillStyle = rain || night ? "#1a3346" : "#314556"; g.fill();
+  const scroll = (t * 0.15) % 1;
+  g.strokeStyle = "#f6e7a8"; g.lineWidth = 3;
+  for(let i=0;i<8;i++){
+    const z = (i/8 + scroll) % 1;
+    const a = project(z,0), b = project(Math.min(0.99,z+0.04),0);
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke();
+  }
+  const ego = project(0.82, -0.42);
+  const other = project((t*0.08)%1, 0.42);
+  car(other.x, other.y, other.scale, "#f0b429", true);
+  car(ego.x, ego.y, ego.scale, "#e23b55", false);
+  if(rain){
+    g.strokeStyle = "rgba(190,230,255,.55)";
+    for(let i=0;i<70;i++){
+      const x = (i*53 + t*180) % W, y = (i*37 + t*320) % H;
+      g.beginPath(); g.moveTo(x,y); g.lineTo(x+4,y+12); g.stroke();
+    }
+  }
+  if(fog){ g.fillStyle = "rgba(214,230,240,.28)"; g.fillRect(0,H*0.3,W,H*0.5); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.getElementById("explore").onclick = () => {
+  const doc = window.parent.document;
+  const target = doc.getElementById("scenario-anchor") || doc.querySelector("form");
+  if(target) target.scrollIntoView({behavior:"smooth", block:"start"});
+};
+</script>
+</body>
+</html>

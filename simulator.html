@@ -4,33 +4,36 @@
 <meta charset="utf-8">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#061321;color:#edfaff;font-family:"Segoe UI",Arial,sans-serif}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px}
+body{margin:0;background:#071421;color:#f4fbff;font-family:"Segoe UI",Arial,sans-serif}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px}
 .scene{position:relative;border:1px solid #255a77;border-radius:18px;overflow:hidden;background:#07111c}
-canvas{display:block;width:100%;height:430px}
-.hud{position:absolute;top:12px;left:12px;background:#031522e6;border:1px solid #2786a5;border-radius:12px;padding:10px 12px;line-height:1.55;font-size:12px;max-width:230px}
+canvas{display:block;width:100%;height:440px}
+.hud{position:absolute;top:12px;left:12px;background:#04121ee6;border:1px solid #3d8eab;border-radius:12px;padding:10px 12px;line-height:1.5;font-size:12px;max-width:240px;color:#f4fbff}
 .hud strong{color:#67e8f9;font-size:14px}
-.panel{background:#10233a;border:1px solid #27526c;border-radius:17px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.caption{font-size:11px;color:#9abbd0;letter-spacing:.04em}
-.result{font-size:22px;font-weight:800;color:#67e8f9;line-height:1.2}
-button{border:1px solid #2f6888;background:#173c5b;color:#e8faff;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;width:100%}
+.panel{background:#123049;border:1px solid #3d7e9a;border-radius:17px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.caption{font-size:11px;color:#c5dcea;letter-spacing:.04em}
+.result{font-size:22px;font-weight:800;color:#f7fbff;line-height:1.2}
+.percent{font-size:28px;font-weight:800;color:#67e8f9}
+button{border:1px solid #3d7e9a;background:#18486a;color:#f4fbff;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;width:100%}
 button:hover{filter:brightness(1.12)}
-.primary{background:linear-gradient(100deg,#02b7d1,#7438d7);border:0}
-.orange{border-color:#f6a342;color:#ffd39b}
-.green{border-color:#18aa83;color:#9af2cb}
+.primary{background:linear-gradient(100deg,#02b7d1,#7438d7);border:0;color:#fff}
+.orange{border-color:#f6a342;color:#ffe3bf}
+.green{border-color:#3dcaa0;color:#d9fff2}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.note{font-size:11px;color:#a7c4d4;line-height:1.45}
+.note{font-size:12px;color:#d5e7f2;line-height:1.45}
 input{width:100%;accent-color:#22d3ee}
-.explain{margin-top:12px;background:#0c1c2e;border:1px solid #2a5674;border-radius:16px;padding:14px 16px}
-.explain h2{margin:0 0 6px;font-size:16px;color:#f4fbff}
-.disclaimer{margin:0 0 12px;font-size:12px;line-height:1.45;color:#f6d7a8}
-.facts{display:grid;grid-template-columns:1.3fr .9fr .8fr;gap:12px}
-.facts h3{margin:0 0 4px;font-size:11px;letter-spacing:.06em;color:#8fd8ee;font-weight:700}
-.facts p,.facts li{margin:0;font-size:13px;line-height:1.45;color:#e7f6ff}
+.explain{margin-top:12px;background:#10283f;border:1px solid #3d7e9a;border-radius:16px;padding:16px}
+.explain.done{border-color:#67e8f9;box-shadow:0 0 0 1px #67e8f955}
+.explain h2{margin:0 0 8px;font-size:18px;color:#f7fbff;letter-spacing:.02em}
+.lead{margin:0 0 12px;font-size:15px;line-height:1.5;color:#f4fbff}
+.facts{display:grid;grid-template-columns:1.2fr .9fr .8fr;gap:12px}
+.facts h3{margin:0 0 4px;font-size:11px;letter-spacing:.06em;color:#9be7f7;font-weight:800}
+.facts p,.facts li{margin:0;font-size:14px;line-height:1.45;color:#f4fbff}
 .facts ul{margin:0;padding-left:16px}
+.note2{margin:12px 0 0;color:#f6d7a8;font-size:13px;line-height:1.45}
 @media(max-width:740px){
  .layout{grid-template-columns:1fr}
- canvas{height:340px}
+ canvas{height:320px}
  .facts{grid-template-columns:1fr}
 }
 </style>
@@ -48,7 +51,7 @@ input{width:100%;accent-color:#22d3ee}
  <div class="panel">
   <div class="caption">PREDICTED INJURY SEVERITY</div>
   <div class="result" id="result"></div>
-  <div id="percent" style="font-size:20px"></div>
+  <div class="percent" id="percent"></div>
   <div class="caption" id="decisionLine"></div>
   <div class="caption">Conditional estimate if a crash were recorded</div>
   <button class="primary" id="drive">START DRIVE</button>
@@ -60,23 +63,25 @@ input{width:100%;accent-color:#22d3ee}
   <button class="green" id="normal">NORMAL JOURNEY</button>
   <div class="caption">ANIMATION SPEED: <span id="pace">3×</span></div>
   <input type="range" min="1" max="5" value="3" id="speed">
-  <div class="note">The collision is a teaching illustration. It is not a prediction that a crash will happen.</div>
+  <div class="note">RESTART replays the current scene. The collision is a teaching illustration, not a prediction that a crash will happen.</div>
  </div>
 </div>
 <section class="explain" id="explain">
- <h2>Simulated Incident Explanation</h2>
- <p class="disclaimer" id="disclaimer"></p>
+ <h2>WHAT HAPPENED IN THIS SIMULATION?</h2>
+ <p class="lead" id="whatText"></p>
  <div class="facts">
   <div>
-   <h3>FICTIONAL INCIDENT MECHANISM</h3>
+   <h3>FICTIONAL INCIDENT TYPE</h3>
+   <p id="incidentType"></p>
+   <h3 style="margin-top:10px">ILLUSTRATIVE MECHANISM</h3>
    <p id="mechanism"></p>
   </div>
   <div>
-   <h3>SELECTED ROAD AND WEATHER</h3>
+   <h3>ROAD AND WEATHER</h3>
    <ul id="conditions"></ul>
   </div>
   <div>
-   <h3>PREDICTED INJURY SEVERITY</h3>
+   <h3>CLASSIFICATION</h3>
    <p id="severity"></p>
    <h3 style="margin-top:10px">ESTIMATED KSI PROBABILITY</h3>
    <p id="ksiProb"></p>
@@ -84,6 +89,7 @@ input{width:100%;accent-color:#22d3ee}
    <p id="decisionThreshold"></p>
   </div>
  </div>
+ <p class="note2" id="disclaimer"></p>
 </section>
 <script>
 const cfg = __CONFIG__;
@@ -91,7 +97,7 @@ const c = document.getElementById("canvas");
 const g = c.getContext("2d");
 const el = id => document.getElementById(id);
 
-let W = 900, H = 430, frame = 0, progress = 0, travel = 0, speed = 3;
+let W = 900, H = 440, frame = 0, progress = 0, travel = 0, speed = 3;
 let running = false, paused = false, ended = false;
 let mode = "slight";
 const snow = !!cfg.snow, rain = !!cfg.rain, wet = !!cfg.wet;
@@ -108,26 +114,17 @@ el("result").textContent = cfg.label || (ksi ? "KSI" : "Slight");
 el("result").dataset.prob = String(probability);
 el("result").dataset.threshold = String(threshold);
 el("result").dataset.ksi = ksi ? "1" : "0";
-el("percent").textContent = Number.isFinite(probability)
-  ? (probability * 100).toFixed(2) + "%"
-  : "";
+el("percent").textContent = Number.isFinite(probability) ? (probability * 100).toFixed(2) + "%" : "";
 el("decisionLine").textContent = Number.isFinite(threshold)
   ? "Decision threshold " + threshold.toFixed(3) + (cfg.decision_mode ? " · " + cfg.decision_mode : "")
   : "";
-el("weather").textContent = [
-  night ? "NIGHT" : "DAYLIGHT",
-  snow ? "SNOW" : "",
-  rain ? "RAIN" : "",
-  wet ? "WET ROAD" : "",
-  fog ? "FOG" : "",
-  ice ? "ICE" : ""
-].filter(Boolean).join(" · ");
-el("disclaimer").textContent = cfg.disclaimer || "";
+el("weather").textContent = [night ? "NIGHT" : "DAYLIGHT", snow ? "SNOW" : "", rain ? "RAIN" : "", wet ? "WET ROAD" : "", fog ? "FOG" : "", ice ? "ICE" : ""].filter(Boolean).join(" · ");
+el("disclaimer").textContent = cfg.disclaimer || "This sequence illustrates a possible road scenario. The AI did not predict that this crash would happen.";
+el("whatText").textContent = cfg.what_happened || "";
+el("incidentType").textContent = ksi ? "KSI — stronger non-graphic contact" : "Slight — mild non-graphic contact";
 el("mechanism").textContent = cfg.mechanism || "";
 el("severity").textContent = cfg.severity || cfg.label || "";
-el("ksiProb").textContent = Number.isFinite(probability)
-  ? (probability * 100).toFixed(2) + "%"
-  : "";
+el("ksiProb").textContent = Number.isFinite(probability) ? (probability * 100).toFixed(2) + "%" : "";
 el("decisionThreshold").textContent = Number.isFinite(threshold)
   ? threshold.toFixed(3) + (cfg.decision_mode ? " · " + cfg.decision_mode : "")
   : "";
@@ -141,7 +138,7 @@ const conditionList = el("conditions");
 function resize(){
   const rect = c.getBoundingClientRect();
   W = Math.max(320, rect.width);
-  H = Math.max(280, rect.height);
+  H = Math.max(260, rect.height);
   const d = Math.min(window.devicePixelRatio || 1, 2);
   c.width = Math.round(W * d);
   c.height = Math.round(H * d);
@@ -150,207 +147,218 @@ function resize(){
 window.addEventListener("resize", resize);
 resize();
 
-function rect(x, y, w, h, color){
-  g.fillStyle = color;
-  g.fillRect(x, y, w, h);
-}
-function circ(x, y, r, color){
-  g.beginPath();
-  g.arc(x, y, r, 0, Math.PI * 2);
-  g.fillStyle = color;
-  g.fill();
+function lerp(a, b, t){ return a + (b - a) * t; }
+function easeOut(t){ t = Math.max(0, Math.min(1, t)); return 1 - Math.pow(1 - t, 3); }
+function horizonY(){ return H * 0.36; }
+function project(z, lane){
+  const zz = Math.max(0.02, Math.min(1, z));
+  const y = horizonY() + Math.pow(zz, 1.28) * (H * 0.97 - horizonY());
+  const half = lerp(W * 0.028, W * 0.44, zz);
+  return {x: W * 0.5 + lane * half, y, scale: lerp(0.18, 1.02, zz), z: zz};
 }
 function poly(pts, color){
   g.beginPath();
-  g.moveTo(pts[0][0], pts[0][1]);
-  for(let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.moveTo(pts[0].x, pts[0].y);
+  for(let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
   g.closePath();
   g.fillStyle = color;
   g.fill();
 }
-function line(x, y, x2, y2, color, width){
-  g.strokeStyle = color;
-  g.lineWidth = width;
+function drawRoad(){
+  const farL = project(0.02, -1), farR = project(0.02, 1);
+  const nearR = project(1, 1), nearL = project(1, -1);
+  g.fillStyle = night ? "#10283c" : "#6ea0b4";
+  g.fillRect(0, horizonY() - 8, W, 40);
+  poly([farL, farR, nearR, nearL], snow ? "#d5e3ec" : wet || rain ? "#1a3348" : ice ? "#b9d0de" : "#2c4252");
+  g.strokeStyle = "#d7e4ee";
+  g.lineWidth = 2;
   g.beginPath();
-  g.moveTo(x, y);
-  g.lineTo(x2, y2);
+  g.moveTo(farL.x, farL.y); g.lineTo(nearL.x, nearL.y);
+  g.moveTo(farR.x, farR.y); g.lineTo(nearR.x, nearR.y);
   g.stroke();
+  g.strokeStyle = "#f6e7a8";
+  g.lineWidth = 3;
+  g.setLineDash([1, 0]);
+  for(let i = 0; i < 9; i++){
+    const z = (i / 9 + (travel % 900) / 900) % 1;
+    const a = project(Math.max(0.03, z), 0);
+    const b = project(Math.min(0.99, z + 0.035), 0);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+  }
 }
-function lerp(a, b, t){ return a + (b - a) * t; }
-
-function drawCar(x, y, scale, color, plate){
-  const s = scale * Math.min(1.05, W / 900);
-  const cw = 118 * s, ch = 86 * s;
-  circ(x, y + ch * 0.08, cw * 0.42, "#06121bcc");
-  rect(x - cw * 0.48, y - ch * 0.28, cw * 0.12, ch * 0.42, "#07101a");
-  rect(x + cw * 0.36, y - ch * 0.28, cw * 0.12, ch * 0.42, "#07101a");
+function drawCar(p, color, front){
+  const s = p.scale;
+  const w = 74 * s, h = 42 * s;
+  g.save();
+  g.translate(p.x, p.y);
+  g.scale(1, 0.32);
+  g.beginPath();
+  g.ellipse(0, 6 * s, w * 0.48, h * 0.42, 0, 0, Math.PI * 2);
+  g.fillStyle = "rgba(0,0,0,0.4)";
+  g.fill();
+  g.restore();
+  g.fillStyle = "#0c1218";
+  g.fillRect(p.x - w * 0.40, p.y - h * 0.22, w * 0.16, h * 0.22);
+  g.fillRect(p.x + w * 0.24, p.y - h * 0.22, w * 0.16, h * 0.22);
   g.fillStyle = color;
   g.beginPath();
-  g.roundRect(x - cw * 0.46, y - ch * 0.78, cw * 0.92, ch * 0.78, 14 * s);
+  g.roundRect(p.x - w * 0.46, p.y - h - 4 * s, w * 0.92, h * 0.82, 9 * s);
   g.fill();
-  poly([
-    [x - cw * 0.30, y - ch * 0.68],
-    [x + cw * 0.30, y - ch * 0.68],
-    [x + cw * 0.22, y - ch * 0.42],
-    [x - cw * 0.22, y - ch * 0.42]
-  ], "#16384f");
-  rect(x - cw * 0.40, y - ch * 0.24, cw * 0.16, ch * 0.10, "#ffd0d0");
-  rect(x + cw * 0.24, y - ch * 0.24, cw * 0.16, ch * 0.10, "#ffd0d0");
-  if(plate){
-    g.fillStyle = "#f7fbff";
-    g.textAlign = "center";
-    g.font = "700 " + Math.max(9, 11 * s) + "px Segoe UI, Arial";
-    g.fillText(plate, x, y - ch * 0.08);
+  g.fillStyle = "#16384f";
+  g.fillRect(p.x - w * 0.28, p.y - h * 0.82, w * 0.56, h * 0.28);
+  g.fillStyle = front ? "#e7fbff" : "#ffc1c1";
+  const ly = front ? p.y - h * 0.92 : p.y - h * 0.28;
+  g.fillRect(p.x - w * 0.32, ly, w * 0.16, h * 0.12);
+  g.fillRect(p.x + w * 0.16, ly, w * 0.16, h * 0.12);
+  if(night && front){
+    g.fillStyle = "rgba(255,236,170,0.16)";
+    g.beginPath();
+    g.moveTo(p.x - w * 0.2, ly);
+    g.lineTo(p.x - w * 0.85, p.y + 18 * s);
+    g.lineTo(p.x + w * 0.85, p.y + 18 * s);
+    g.lineTo(p.x + w * 0.2, ly);
+    g.fill();
   }
-  return {w: cw, h: ch};
 }
-
-function timeline(){
-  const t = Math.min(1, Math.max(0, progress));
-  if(mode === "normal"){
-    return {approach: t, react: 0, done: ended, impact: false};
+function separate(a, b){
+  const aw = 37 * a.scale, bw = 37 * b.scale;
+  const ah = 14 * a.scale, bh = 14 * b.scale;
+  let dx = b.x - a.x, dy = b.y - a.y;
+  const ox = aw + bw - Math.abs(dx);
+  const oy = ah + bh - Math.abs(dy);
+  if(ox > 0 && oy > 0){
+    const push = ox / 2 + 2;
+    const sign = dx === 0 ? 1 : Math.sign(dx);
+    a.x -= sign * push;
+    b.x += sign * push;
   }
+}
+function poses(){
+  const severe = mode === "ksi";
+  if(mode === "normal"){
+    const pass = Math.min(1, Math.max(0, progress));
+    return {
+      other: project(lerp(0.08, 1.05, pass), 0.48),
+      ego: project(0.84, -0.46),
+      braking: false,
+      impact: false,
+      react: 0
+    };
+  }
+  const t = Math.min(1, Math.max(0, progress));
   const impactAt = 0.62;
   const approach = Math.min(1, t / impactAt);
   const react = t < impactAt ? 0 : Math.min(1, (t - impactAt) / 0.28);
-  return {approach, react, done: ended, impact: t >= impactAt};
+  const eased = easeOut(approach);
+  const gap = severe ? 0.07 : 0.12;
+  const other = project(lerp(0.08, 0.70, eased), lerp(0.52, gap, eased));
+  const ego = project(lerp(0.96, 0.74, eased), lerp(-0.50, -gap, eased));
+  return {other, ego, braking: approach > 0.42 && react < 0.85, impact: t >= impactAt, react};
 }
-
 function draw(){
-  const phase = timeline();
+  const pose = poses();
   const severe = mode === "ksi";
-  const meetX = W * 0.50;
-  const meetY = H * 0.56;
   let shakeX = 0, shakeY = 0;
-  if(phase.impact && mode !== "normal"){
-    const amp = (severe ? 8 : 2.2) * (1 - phase.react);
-    shakeX = Math.sin(phase.react * 46) * amp;
-    shakeY = Math.cos(phase.react * 37) * amp * 0.65;
+  if(pose.impact && mode !== "normal"){
+    const amp = (severe ? 7 : 2) * (1 - pose.react);
+    shakeX = Math.sin(pose.react * 40) * amp;
+    shakeY = Math.cos(pose.react * 32) * amp * 0.45;
   }
-
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   g.setTransform(dpr, 0, 0, dpr, shakeX * dpr, shakeY * dpr);
-
   const sky = g.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, night ? "#07111f" : "#1a86c4");
-  sky.addColorStop(1, night ? "#1b3d5c" : "#d5f1fb");
-  rect(0, 0, W, H, sky);
+  sky.addColorStop(0, night ? "#07111f" : "#1677b5");
+  sky.addColorStop(1, night ? "#1a3d58" : "#d7f2fb");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
   if(night){
-    circ(W * 0.82, H * 0.14, 18, "#fff6d4");
-    for(let i = 0; i < 40; i++) circ((i * 97) % W, (i * 53) % (H * 0.34), 1.1, "#e7f7ff");
+    g.fillStyle = "#fff4cc";
+    g.beginPath(); g.arc(W * 0.82, H * 0.12, 14, 0, Math.PI * 2); g.fill();
   }else{
-    circ(W * 0.82, H * 0.14, 22, "#ffe27a");
+    g.fillStyle = "#ffe38a";
+    g.beginPath(); g.arc(W * 0.8, H * 0.13, 20, 0, Math.PI * 2); g.fill();
   }
-
-  const horizon = H * 0.40;
-  poly([[0, H * 0.46], [W * 0.22, H * 0.28], [W * 0.42, H * 0.46], [W * 0.62, H * 0.26], [W, H * 0.42], [W, H * 0.58], [0, H * 0.58]],
-    snow ? "#c5d7e4" : night ? "#17344c" : "#5e93a8");
-  rect(0, H * 0.50, W, H * 0.50, snow ? "#e7f2f6" : "#1f5a46");
-  poly([[W * 0.46, horizon], [W * 0.54, horizon], [W * 0.96, H], [W * 0.04, H]], "#8ea0ad");
-  poly([[W * 0.47, horizon], [W * 0.53, horizon], [W * 0.90, H], [W * 0.10, H]],
-    snow ? "#c3d3df" : wet ? "#1d3b50" : ice ? "#b7cddd" : "#314556");
-
-  for(let i = 0; i < 10; i++){
-    const z = (i / 10 + travel * 0.00028) % 1;
-    const y = horizon + z * z * (H - horizon);
-    const y2 = horizon + Math.min(1, z + 0.045) ** 2 * (H - horizon);
-    line(W * 0.5, y, W * 0.5, y2, "#fff3c4", Math.max(2, z * 6));
+  g.fillStyle = snow ? "#d5e4ee" : night ? "#14344c" : "#5f93a6";
+  g.fillRect(0, horizonY() - H * 0.08, W, H * 0.1);
+  drawRoad();
+  if(pose.braking){
+    g.strokeStyle = "rgba(210,220,230,.55)";
+    g.lineWidth = severe ? 3 : 2;
+    g.beginPath();
+    g.moveTo(pose.other.x, pose.other.y);
+    g.lineTo(pose.other.x, pose.other.y - 28 * pose.other.scale);
+    g.moveTo(pose.ego.x, pose.ego.y);
+    g.lineTo(pose.ego.x, pose.ego.y + 18 * pose.ego.scale);
+    g.stroke();
   }
-  for(let i = 0; i < 16; i++){
-    const z = (i / 16 + travel * 0.00012) % 1;
-    if(z < 0.08) continue;
-    const side = i % 2 === 0 ? -1 : 1;
-    const x = W * 0.5 + side * (W * 0.06 + z * W * 0.48);
-    const y = horizon + z * z * (H - horizon);
-    const s = 7 + z * 34;
-    line(x, y, x, y - s, "#6d5340", Math.max(2, z * 3));
-    poly([[x, y - s * 1.8], [x - s * 0.5, y - s * 0.35], [x + s * 0.5, y - s * 0.35]], snow ? "#e7f7fb" : "#124c3e");
-  }
-
-  const recoil = phase.impact ? Math.sin(Math.min(1, phase.react) * Math.PI) * (severe ? 18 : 6) : 0;
-  let other, ego, flash;
-  if(mode === "normal"){
-    const pass = phase.approach;
-    other = {x: W * 0.38, y: lerp(H * 0.36, H * 1.08, pass), scale: lerp(0.42, 0.82, pass)};
-    ego = {x: W * 0.64, y: H * 0.78, scale: 0.92};
-    flash = null;
+  if(mode !== "normal") separate(pose.ego, pose.other);
+  const otherFirst = pose.other.y <= pose.ego.y;
+  const first = otherFirst ? pose.other : pose.ego;
+  const second = otherFirst ? pose.ego : pose.other;
+  if(otherFirst){
+    drawCar(first, "#f0b429", true);
+    drawCar(second, "#e23b55", false);
   }else{
-    const a = phase.approach;
-    const close = severe ? 0.025 : 0;
-    other = {
-      x: lerp(W * 0.36, W * (0.445 + close), a) - recoil,
-      y: lerp(H * 0.34, H * 0.56, a) - recoil * 0.25,
-      scale: lerp(0.46, severe ? 0.76 : 0.68, a)
-    };
-    ego = {
-      x: lerp(W * 0.66, W * (0.555 - close), a) + recoil,
-      y: lerp(H * 0.86, H * 0.66, a) + recoil * 0.15,
-      scale: 0.90
-    };
-    flash = {x: (other.x + ego.x) / 2, y: (other.y + ego.y) / 2 - 18};
+    drawCar(first, "#e23b55", false);
+    drawCar(second, "#f0b429", true);
   }
-
-  if(phase.impact && severe){
-    line(other.x, other.y + 8, other.x - 18 - recoil, other.y + 26, "#d7e4ee99", 3);
-    line(ego.x, ego.y + 6, ego.x + 16 + recoil, ego.y + 22, "#d7e4ee99", 3);
+  if(pose.impact && mode !== "normal"){
+    const life = 1 - pose.react;
+    const x = (pose.other.x + pose.ego.x) / 2;
+    const y = Math.min(pose.other.y, pose.ego.y) - 8;
+    g.fillStyle = severe ? "rgba(255,214,150," + (0.35 * life) + ")" : "rgba(255,248,220," + (0.28 * life) + ")";
+    g.beginPath();
+    g.arc(x, y, (severe ? 26 : 12) * (0.6 + life), 0, Math.PI * 2);
+    g.fill();
   }
-  drawCar(other.x, other.y, other.scale, "#f0b429", "");
-  drawCar(ego.x, ego.y, ego.scale, "#e23b55", "SAFEROUTE");
-
-  if(flash && phase.impact){
-    const life = 1 - phase.react;
-    const radius = (severe ? 28 : 12) * (0.55 + life);
-    circ(flash.x, flash.y, radius, severe ? "#ffd27aaa" : "#fff6d066");
-    circ(flash.x, flash.y, Math.max(4, radius * 0.38), "#fffdf8dd");
-  }
-
   if(snow || rain){
-    for(let i = 0; i < 120; i++){
-      const px = (i * 67 + frame * (snow ? 0.6 : 2.2)) % W;
-      const py = (i * 41 + frame * (snow ? 1.1 : 4.2)) % H;
-      if(snow) circ(px, py, 1.4, "#f7fbffdd");
-      else line(px, py, px + 4, py + 12, "#b7e7ff99", 1.4);
+    for(let i = 0; i < 90; i++){
+      const px = (i * 67 + frame * (snow ? 0.5 : 2.4)) % W;
+      const py = (i * 41 + frame * (snow ? 1.0 : 4.4)) % H;
+      if(snow){
+        g.fillStyle = "rgba(247,251,255,.85)";
+        g.beginPath(); g.arc(px, py, 1.3, 0, 6.3); g.fill();
+      }else{
+        g.strokeStyle = "rgba(183,231,255,.7)";
+        g.lineWidth = 1.3;
+        g.beginPath(); g.moveTo(px, py); g.lineTo(px + 3, py + 11); g.stroke();
+      }
     }
   }
-  if(fog) rect(0, H * 0.22, W, H * 0.55, "#d5e7f066");
-
+  if(fog){
+    g.fillStyle = "rgba(214,230,240,.34)";
+    g.fillRect(0, H * 0.2, W, H * 0.6);
+  }
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if(phase.done && mode !== "normal"){
+  if(ended && mode !== "normal"){
     const title = severe ? "KSI — Serious Incident Demo" : "SLIGHT — Minor Incident Demo";
     g.fillStyle = "#041018ee";
     g.beginPath();
-    g.roundRect(18, H - 48, Math.min(420, W - 36), 34, 10);
+    g.roundRect(18, H - 48, Math.min(440, W - 36), 34, 10);
     g.fill();
-    g.fillStyle = severe ? "#ffd7a1" : "#d8fff0";
+    g.fillStyle = "#f7fbff";
     g.font = "700 15px Segoe UI, Arial";
     g.textAlign = "left";
     g.fillText(title, 32, H - 26);
   }
+  el("explain").classList.toggle("done", ended && mode !== "normal");
 }
 
-function setPauseLabel(){
-  el("pause").textContent = paused ? "RESUME" : "PAUSE";
-}
+function setPauseLabel(){ el("pause").textContent = paused ? "RESUME" : "PAUSE"; }
 function reset(which){
-  running = false;
-  paused = false;
-  ended = false;
-  progress = 0;
-  travel = 0;
+  running = false; paused = false; ended = false; progress = 0; travel = 0;
   if(which) mode = which;
   el("status").textContent = "READY TO DRIVE";
   el("journey").textContent = mode === "normal" ? "Journey 0%" : "Approach 0%";
+  el("incidentType").textContent = mode === "normal"
+    ? "Normal journey — no contact"
+    : (mode === "ksi" ? "KSI — stronger non-graphic contact" : "Slight — mild non-graphic contact");
   setPauseLabel();
   draw();
 }
 function start(){
-  if(ended){
-    const keep = mode;
-    reset(keep);
-  }
-  paused = false;
-  running = true;
-  ended = false;
+  if(ended){ const keep = mode; reset(keep); }
+  paused = false; running = true; ended = false;
   el("status").textContent = "DRIVING";
   setPauseLabel();
 }
@@ -363,12 +371,8 @@ function loop(now){
   frame += frames;
   if(running){
     progress += speed * 0.00072 * frames;
-    travel += speed * 7 * frames;
-    if(progress >= 1){
-      progress = 1;
-      running = false;
-      ended = true;
-    }
+    travel += speed * 9 * frames;
+    if(progress >= 1){ progress = 1; running = false; ended = true; }
   }
   if(ended && mode !== "normal"){
     el("status").textContent = mode === "ksi" ? "KSI INCIDENT" : "SLIGHT INCIDENT";
@@ -378,39 +382,22 @@ function loop(now){
     el("journey").textContent = "Journey 100%";
   }else if(running){
     el("status").textContent = "DRIVING";
-    if(mode === "normal"){
-      el("journey").textContent = "Journey " + Math.round(progress * 100) + "%";
-    }else if(progress < 0.62){
-      el("journey").textContent = "Approach " + Math.round((progress / 0.62) * 100) + "%";
-    }else{
-      el("journey").textContent = "Impact";
-    }
+    el("journey").textContent = mode === "normal"
+      ? "Journey " + Math.round(progress * 100) + "%"
+      : (progress < 0.62 ? "Approach " + Math.round((progress / 0.62) * 100) + "%" : "Impact");
   }
   draw();
   requestAnimationFrame(loop);
 }
-
 el("drive").onclick = () => { reset(predictedMode); start(); };
 el("incident").onclick = () => { reset(predictedMode); start(); };
 el("normal").onclick = () => { reset("normal"); start(); };
 el("restart").onclick = () => { reset(mode); start(); };
 el("pause").onclick = () => {
-  if(running){
-    running = false;
-    paused = true;
-    el("status").textContent = "PAUSED";
-    setPauseLabel();
-  }else if(paused){
-    running = true;
-    paused = false;
-    el("status").textContent = "DRIVING";
-    setPauseLabel();
-  }
+  if(running){ running = false; paused = true; el("status").textContent = "PAUSED"; setPauseLabel(); }
+  else if(paused){ running = true; paused = false; el("status").textContent = "DRIVING"; setPauseLabel(); }
 };
-el("speed").oninput = e => {
-  speed = Number(e.target.value);
-  el("pace").textContent = speed + "×";
-};
+el("speed").oninput = e => { speed = Number(e.target.value); el("pace").textContent = speed + "×"; };
 window.__simState = () => ({
   running, paused, ended, progress, mode, ksi, threshold, probability,
   status: el("status").textContent,
@@ -419,7 +406,8 @@ window.__simState = () => ({
   conditions: el("conditions").innerText,
   severity: el("severity").textContent,
   disclaimer: el("disclaimer").textContent,
-  pauseLabel: el("pause").textContent
+  pauseLabel: el("pause").textContent,
+  what: el("whatText").textContent
 });
 mode = predictedMode;
 reset(predictedMode);
