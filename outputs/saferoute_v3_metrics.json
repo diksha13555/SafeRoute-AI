@@ -1,0 +1,490 @@
+{
+  "model_name": "SafeRoute-AI V3",
+  "model_type": "Tuned LightGBM binary classifier (pre-crash)",
+  "target": "KSI vs Slight",
+  "prediction_context": "KSI severity conditional on a recorded accident; not absolute accident probability",
+  "feature_names": [
+    "1st_Road_Class",
+    "2nd_Road_Class",
+    "Day_of_Week",
+    "Junction_Control",
+    "Junction_Detail",
+    "Light_Conditions",
+    "Road_Surface_Conditions",
+    "Road_Type",
+    "Urban_or_Rural_Area",
+    "Weather_Conditions",
+    "Pedestrian_Crossing-Physical_Facilities",
+    "Pedestrian_Crossing-Human_Control",
+    "Ego_Vehicle_Type",
+    "Ego_Driver_Age_Band",
+    "Ego_Journey_Purpose",
+    "Speed_limit",
+    "Hour",
+    "Month",
+    "Latitude",
+    "Longitude",
+    "Weekend",
+    "Rush_Hour",
+    "Night",
+    "Year",
+    "Ego_Vehicle_Age",
+    "Ego_Engine_Capacity",
+    "Hour_sin",
+    "Hour_cos",
+    "Month_sin",
+    "Month_cos",
+    "Is_High_Speed",
+    "Is_Dark_Rural",
+    "Is_Adverse_Weather",
+    "Is_Wet_Surface",
+    "Urban_High_Speed"
+  ],
+  "categorical_features": [
+    "1st_Road_Class",
+    "2nd_Road_Class",
+    "Day_of_Week",
+    "Junction_Control",
+    "Junction_Detail",
+    "Light_Conditions",
+    "Road_Surface_Conditions",
+    "Road_Type",
+    "Urban_or_Rural_Area",
+    "Weather_Conditions",
+    "Pedestrian_Crossing-Physical_Facilities",
+    "Pedestrian_Crossing-Human_Control",
+    "Ego_Vehicle_Type",
+    "Ego_Driver_Age_Band",
+    "Ego_Journey_Purpose"
+  ],
+  "category_levels": {
+    "1st_Road_Class": [
+      "A",
+      "A(M)",
+      "B",
+      "C",
+      "Motorway",
+      "Unclassified"
+    ],
+    "2nd_Road_Class": [
+      "A",
+      "A(M)",
+      "B",
+      "C",
+      "Motorway",
+      "Unclassified"
+    ],
+    "Day_of_Week": [
+      "Friday",
+      "Monday",
+      "Saturday",
+      "Sunday",
+      "Thursday",
+      "Tuesday",
+      "Wednesday"
+    ],
+    "Junction_Control": [
+      "Authorised person",
+      "Auto traffic signal",
+      "Data missing or out of range",
+      "Give way or uncontrolled",
+      "Not at junction or within 20 metres",
+      "Stop sign"
+    ],
+    "Junction_Detail": [
+      "Crossroads",
+      "Data missing or out of range",
+      "Mini-roundabout",
+      "More than 4 arms (not roundabout)",
+      "Not at junction or within 20 metres",
+      "Other junction",
+      "Private drive or entrance",
+      "Roundabout",
+      "Slip road",
+      "T or staggered junction"
+    ],
+    "Light_Conditions": [
+      "Darkness - lighting unknown",
+      "Darkness - lights lit",
+      "Darkness - lights unlit",
+      "Darkness - no lighting",
+      "Daylight"
+    ],
+    "Road_Surface_Conditions": [
+      "Data missing or out of range",
+      "Dry",
+      "Flood over 3cm. deep",
+      "Frost or ice",
+      "Snow",
+      "Wet or damp"
+    ],
+    "Road_Type": [
+      "Dual carriageway",
+      "One way street",
+      "Roundabout",
+      "Single carriageway",
+      "Slip road",
+      "Unknown"
+    ],
+    "Urban_or_Rural_Area": [
+      "Rural",
+      "Urban"
+    ],
+    "Weather_Conditions": [
+      "Data missing or out of range",
+      "Fine + high winds",
+      "Fine no high winds",
+      "Fog or mist",
+      "Other",
+      "Raining + high winds",
+      "Raining no high winds",
+      "Snowing + high winds",
+      "Snowing no high winds",
+      "Unknown"
+    ],
+    "Pedestrian_Crossing-Physical_Facilities": [
+      "0.0",
+      "1.0",
+      "4.0",
+      "5.0",
+      "7.0",
+      "8.0"
+    ],
+    "Pedestrian_Crossing-Human_Control": [
+      "0.0",
+      "1.0",
+      "2.0"
+    ],
+    "Ego_Vehicle_Type": [
+      "Agricultural vehicle",
+      "Bus or coach (17 or more pass seats)",
+      "Car",
+      "Electric motorcycle",
+      "Goods 7.5 tonnes mgw and over",
+      "Goods over 3.5t. and under 7.5t",
+      "Goods vehicle - unknown weight",
+      "Minibus (8 - 16 passenger seats)",
+      "Mobility scooter",
+      "Motorcycle - unknown cc",
+      "Motorcycle 125cc and under",
+      "Motorcycle 50cc and under",
+      "Motorcycle over 125cc and up to 500cc",
+      "Motorcycle over 500cc",
+      "Other vehicle",
+      "Pedal cycle",
+      "Ridden horse",
+      "Taxi/Private hire car",
+      "Tram",
+      "Van / Goods 3.5 tonnes mgw or under"
+    ],
+    "Ego_Driver_Age_Band": [
+      "0 - 5",
+      "11 - 15",
+      "16 - 20",
+      "21 - 25",
+      "26 - 35",
+      "36 - 45",
+      "46 - 55",
+      "56 - 65",
+      "6 - 10",
+      "66 - 75",
+      "Data missing or out of range",
+      "Over 75"
+    ],
+    "Ego_Journey_Purpose": [
+      "Commuting to/from work",
+      "Data missing or out of range",
+      "Journey as part of work",
+      "Not known",
+      "Other",
+      "Other/Not known (2005-10)",
+      "Pupil riding to/from school",
+      "Taking pupil to/from school"
+    ]
+  },
+  "training_years": [
+    2009,
+    2010,
+    2011,
+    2012,
+    2013
+  ],
+  "validation_years": [
+    2014,
+    2015
+  ],
+  "holdout_years": [
+    2016,
+    2017
+  ],
+  "excluded_postcrash_examples": [
+    "Vehicle_Record_Count",
+    "Has_Motorcycle / Has_Bicycle / Has_Bus / Has_Goods_Vehicle",
+    "Distinct_Vehicle_Types",
+    "Mean/Max vehicle stats across all parties",
+    "First_Vehicle_Manoeuvre",
+    "Number_of_Vehicles",
+    "Number_of_Casualties",
+    "Casualty composition features"
+  ],
+  "feature_engineering": {
+    "Hour": "Extract hour from Time",
+    "Month": "Parse Date dayfirst/mixed",
+    "Weekend": "Saturday or Sunday",
+    "Rush_Hour": "Hour in [7,8,9,16,17,18,19]",
+    "Night": "Hour < 6 or Hour >= 20",
+    "Hour_sin/cos": "Cyclical hour encoding",
+    "Month_sin/cos": "Cyclical month encoding",
+    "Is_High_Speed": "Speed_limit >= 60",
+    "Is_Dark_Rural": "Night and rural",
+    "Is_Adverse_Weather": "Weather not fine/unknown",
+    "Is_Wet_Surface": "Wet/damp/flood/snow/ice/frost",
+    "Urban_High_Speed": "Urban and Speed_limit >= 60",
+    "Ego_*": "Primary vehicle (lowest Vehicle_Reference) as user proxy",
+    "missing_hour": "Preserve as NaN"
+  },
+  "model_selection": {
+    "candidate": "unweighted_earlystop",
+    "params": {
+      "n_estimators": 1200,
+      "learning_rate": 0.03,
+      "num_leaves": 31,
+      "min_child_samples": 150,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_alpha": 0.5,
+      "reg_lambda": 1.5,
+      "scale_pos_weight": 1.0
+    },
+    "best_iteration": 805,
+    "valid_pr_auc": 0.2950214369465665,
+    "valid_roc_auc": 0.67115041436671
+  },
+  "selected_threshold": 0.175,
+  "threshold_status": "Selected by validation KSI F1; holdout not used for selection",
+  "validation_metrics": {
+    "threshold": 0.175,
+    "accuracy": 0.7203486301322028,
+    "precision": 0.26601068243103093,
+    "recall": 0.46646812767118306,
+    "f1": 0.3388098147353126,
+    "roc_auc": 0.67115041436671,
+    "pr_auc": 0.2950214369465665,
+    "confusion_matrix": {
+      "tn": 185773,
+      "fp": 56617,
+      "fn": 23469,
+      "tp": 20519
+    },
+    "classification_report": {
+      "Slight": {
+        "precision": 0.8878380057541029,
+        "recall": 0.7664218820908454,
+        "f1-score": 0.8226742126332943,
+        "support": 242390.0
+      },
+      "KSI": {
+        "precision": 0.26601068243103093,
+        "recall": 0.46646812767118306,
+        "f1-score": 0.3388098147353126,
+        "support": 43988.0
+      },
+      "accuracy": 0.7203486301322028,
+      "macro avg": {
+        "precision": 0.5769243440925669,
+        "recall": 0.6164450048810142,
+        "f1-score": 0.5807420136843034,
+        "support": 286378.0
+      },
+      "weighted avg": {
+        "precision": 0.7923245923692225,
+        "recall": 0.7203486301322028,
+        "f1-score": 0.7483520680036915,
+        "support": 286378.0
+      }
+    }
+  },
+  "validation_metrics_at_0.15": {
+    "threshold": 0.15,
+    "accuracy": 0.644878447366767,
+    "precision": 0.23630365449112192,
+    "recall": 0.5878421387651177,
+    "f1": 0.33709871916044715,
+    "roc_auc": 0.67115041436671,
+    "pr_auc": 0.2950214369465665,
+    "confusion_matrix": {
+      "tn": 158821,
+      "fp": 83569,
+      "fn": 18130,
+      "tp": 25858
+    },
+    "classification_report": {
+      "Slight": {
+        "precision": 0.897542257461105,
+        "recall": 0.6552291761211271,
+        "f1-score": 0.7574789968068947,
+        "support": 242390.0
+      },
+      "KSI": {
+        "precision": 0.23630365449112192,
+        "recall": 0.5878421387651177,
+        "f1-score": 0.33709871916044715,
+        "support": 43988.0
+      },
+      "accuracy": 0.644878447366767,
+      "macro avg": {
+        "precision": 0.5669229559761135,
+        "recall": 0.6215356574431223,
+        "f1-score": 0.5472888579836709,
+        "support": 286378.0
+      },
+      "weighted avg": {
+        "precision": 0.7959752248418269,
+        "recall": 0.644878447366767,
+        "f1-score": 0.6929080882416001,
+        "support": 286378.0
+      }
+    }
+  },
+  "holdout_metrics": {
+    "threshold": 0.175,
+    "accuracy": 0.6604914423318567,
+    "precision": 0.2627782448997655,
+    "recall": 0.49867730422002937,
+    "f1": 0.34418699010274023,
+    "roc_auc": 0.6390292029356107,
+    "pr_auc": 0.29374180059008714,
+    "confusion_matrix": {
+      "tn": 152337,
+      "fp": 66636,
+      "fn": 23878,
+      "tp": 23752
+    },
+    "classification_report": {
+      "Slight": {
+        "precision": 0.8644950770365747,
+        "recall": 0.6956885095422723,
+        "f1-score": 0.7709596445236191,
+        "support": 218973.0
+      },
+      "KSI": {
+        "precision": 0.2627782448997655,
+        "recall": 0.49867730422002937,
+        "f1-score": 0.34418699010274023,
+        "support": 47630.0
+      },
+      "accuracy": 0.6604914423318567,
+      "macro avg": {
+        "precision": 0.5636366609681701,
+        "recall": 0.5971829068811508,
+        "f1-score": 0.5575733173131796,
+        "support": 266603.0
+      },
+      "weighted avg": {
+        "precision": 0.7569952637761229,
+        "recall": 0.6604914423318567,
+        "f1-score": 0.6947145102600645,
+        "support": 266603.0
+      }
+    }
+  },
+  "holdout_metrics_at_0.15": {
+    "threshold": 0.15,
+    "accuracy": 0.5678555755186551,
+    "precision": 0.23734346944010448,
+    "recall": 0.6410665546924208,
+    "f1": 0.34642810544647973,
+    "roc_auc": 0.6390292029356107,
+    "pr_auc": 0.29374180059008714,
+    "confusion_matrix": {
+      "tn": 120858,
+      "fp": 98115,
+      "fn": 17096,
+      "tp": 30534
+    },
+    "classification_report": {
+      "Slight": {
+        "precision": 0.87607463357351,
+        "recall": 0.5519310599936978,
+        "f1-score": 0.6772141082070003,
+        "support": 218973.0
+      },
+      "KSI": {
+        "precision": 0.23734346944010448,
+        "recall": 0.6410665546924208,
+        "f1-score": 0.34642810544647973,
+        "support": 47630.0
+      },
+      "accuracy": 0.5678555755186551,
+      "macro avg": {
+        "precision": 0.5567090515068073,
+        "recall": 0.5964988073430593,
+        "f1-score": 0.51182110682674,
+        "support": 266603.0
+      },
+      "weighted avg": {
+        "precision": 0.7619620191330344,
+        "recall": 0.5678555755186551,
+        "f1-score": 0.6181174839699003,
+        "support": 266603.0
+      }
+    }
+  },
+  "feature_importance_gain_proxy": {
+    "Latitude": 3140,
+    "Longitude": 2901,
+    "Ego_Engine_Capacity": 2126,
+    "Ego_Driver_Age_Band": 1682,
+    "Ego_Vehicle_Type": 1364,
+    "Ego_Vehicle_Age": 1174,
+    "Junction_Detail": 1043,
+    "Day_of_Week": 978,
+    "Hour": 925,
+    "1st_Road_Class": 700,
+    "Hour_cos": 670,
+    "Year": 624,
+    "Speed_limit": 602,
+    "Ego_Journey_Purpose": 592,
+    "Weather_Conditions": 575,
+    "Hour_sin": 547,
+    "Month": 539,
+    "Pedestrian_Crossing-Physical_Facilities": 513,
+    "Road_Type": 476,
+    "Month_cos": 467,
+    "2nd_Road_Class": 399,
+    "Month_sin": 399,
+    "Junction_Control": 366,
+    "Road_Surface_Conditions": 305,
+    "Light_Conditions": 294,
+    "Urban_or_Rural_Area": 168,
+    "Weekend": 147,
+    "Is_Wet_Surface": 95,
+    "Rush_Hour": 68,
+    "Is_Dark_Rural": 59,
+    "Night": 53,
+    "Is_High_Speed": 53,
+    "Urban_High_Speed": 42,
+    "Pedestrian_Crossing-Human_Control": 36,
+    "Is_Adverse_Weather": 28
+  },
+  "baselines_from_notebook": {
+    "V1_32_features_validation": {
+      "roc_auc": 0.7195,
+      "pr_auc": 0.3325,
+      "ksi_f1": 0.3759,
+      "note": "Includes post-crash / crash-composition vehicle features"
+    },
+    "V2_16_features_validation": {
+      "roc_auc": 0.6361,
+      "pr_auc": 0.2426,
+      "accuracy_at_0.15": 0.6003,
+      "note": "Strict pre-crash subset; current dashboard model"
+    }
+  },
+  "recommendation": {
+    "replace_v2": true,
+    "rationale": "V3 improves validation ROC-AUC and PR-AUC over V2 while remaining pre-crash legitimate (map/road + ego-vehicle profile + engineered risk flags). It will not match V1, which used post-crash leakage."
+  },
+  "status": "Experimental V3 development checkpoint",
+  "saved_at_utc": "2026-11-11T16:50:51.092447+00:00"
+}

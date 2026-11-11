@@ -1,0 +1,46 @@
+# Python caches and environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Secrets
+.streamlit/secrets.toml
+*.pem
+credentials.json
+secrets.toml
+
+# Raw data and archives. The STATS19 zips stay outside this repository.
+*.zip
+*.csv
+*.tsv
+*.parquet
+*.7z
+*.rar
+
+# Local backups, caches, and generated outputs
+backups/
+outputs/*
+!outputs/saferoute_v3_metrics.json
+.ipynb_checkpoints/
+
+# Colab execution notebook. It is a local research log, not the app.
+SafeRoute_AI (4).ipynb
+
+# Checkpoints other than the deployed V3 model
+*.pkl
+!models/saferoute_v3_precrash_2026.pkl
+
+# Editors and OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log

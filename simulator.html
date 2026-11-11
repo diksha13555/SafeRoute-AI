@@ -1,0 +1,429 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#061321;color:#edfaff;font-family:"Segoe UI",Arial,sans-serif}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px}
+.scene{position:relative;border:1px solid #255a77;border-radius:18px;overflow:hidden;background:#07111c}
+canvas{display:block;width:100%;height:430px}
+.hud{position:absolute;top:12px;left:12px;background:#031522e6;border:1px solid #2786a5;border-radius:12px;padding:10px 12px;line-height:1.55;font-size:12px;max-width:230px}
+.hud strong{color:#67e8f9;font-size:14px}
+.panel{background:#10233a;border:1px solid #27526c;border-radius:17px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.caption{font-size:11px;color:#9abbd0;letter-spacing:.04em}
+.result{font-size:22px;font-weight:800;color:#67e8f9;line-height:1.2}
+button{border:1px solid #2f6888;background:#173c5b;color:#e8faff;border-radius:10px;padding:11px;font-weight:700;cursor:pointer;width:100%}
+button:hover{filter:brightness(1.12)}
+.primary{background:linear-gradient(100deg,#02b7d1,#7438d7);border:0}
+.orange{border-color:#f6a342;color:#ffd39b}
+.green{border-color:#18aa83;color:#9af2cb}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.note{font-size:11px;color:#a7c4d4;line-height:1.45}
+input{width:100%;accent-color:#22d3ee}
+.explain{margin-top:12px;background:#0c1c2e;border:1px solid #2a5674;border-radius:16px;padding:14px 16px}
+.explain h2{margin:0 0 6px;font-size:16px;color:#f4fbff}
+.disclaimer{margin:0 0 12px;font-size:12px;line-height:1.45;color:#f6d7a8}
+.facts{display:grid;grid-template-columns:1.3fr .9fr .8fr;gap:12px}
+.facts h3{margin:0 0 4px;font-size:11px;letter-spacing:.06em;color:#8fd8ee;font-weight:700}
+.facts p,.facts li{margin:0;font-size:13px;line-height:1.45;color:#e7f6ff}
+.facts ul{margin:0;padding-left:16px}
+@media(max-width:740px){
+ .layout{grid-template-columns:1fr}
+ canvas{height:340px}
+ .facts{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+ <div class="scene">
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+   <strong id="status">READY TO DRIVE</strong>
+   <div id="weather"></div>
+   <div id="journey">Ready</div>
+  </div>
+ </div>
+ <div class="panel">
+  <div class="caption">PREDICTED INJURY SEVERITY</div>
+  <div class="result" id="result"></div>
+  <div id="percent" style="font-size:20px"></div>
+  <div class="caption" id="decisionLine"></div>
+  <div class="caption">Conditional estimate if a crash were recorded</div>
+  <button class="primary" id="drive">START DRIVE</button>
+  <div class="two">
+   <button id="pause">PAUSE</button>
+   <button id="restart">RESTART</button>
+  </div>
+  <button class="orange" id="incident">FICTIONAL INCIDENT</button>
+  <button class="green" id="normal">NORMAL JOURNEY</button>
+  <div class="caption">ANIMATION SPEED: <span id="pace">3×</span></div>
+  <input type="range" min="1" max="5" value="3" id="speed">
+  <div class="note">The collision is a teaching illustration. It is not a prediction that a crash will happen.</div>
+ </div>
+</div>
+<section class="explain" id="explain">
+ <h2>Simulated Incident Explanation</h2>
+ <p class="disclaimer" id="disclaimer"></p>
+ <div class="facts">
+  <div>
+   <h3>FICTIONAL INCIDENT MECHANISM</h3>
+   <p id="mechanism"></p>
+  </div>
+  <div>
+   <h3>SELECTED ROAD AND WEATHER</h3>
+   <ul id="conditions"></ul>
+  </div>
+  <div>
+   <h3>PREDICTED INJURY SEVERITY</h3>
+   <p id="severity"></p>
+   <h3 style="margin-top:10px">ESTIMATED KSI PROBABILITY</h3>
+   <p id="ksiProb"></p>
+   <h3 style="margin-top:10px">DECISION THRESHOLD</h3>
+   <p id="decisionThreshold"></p>
+  </div>
+ </div>
+</section>
+<script>
+const cfg = __CONFIG__;
+const c = document.getElementById("canvas");
+const g = c.getContext("2d");
+const el = id => document.getElementById(id);
+
+let W = 900, H = 430, frame = 0, progress = 0, travel = 0, speed = 3;
+let running = false, paused = false, ended = false;
+let mode = "slight";
+const snow = !!cfg.snow, rain = !!cfg.rain, wet = !!cfg.wet;
+const fog = !!cfg.fog, night = !!cfg.night, ice = !!cfg.ice;
+const threshold = Number(cfg.threshold);
+const probability = Number(cfg.prob);
+const labelKsi = String(cfg.label || "").toUpperCase().indexOf("KSI") === 0;
+const ksi = Number.isFinite(threshold) && Number.isFinite(probability)
+  ? probability >= threshold
+  : (typeof cfg.ksi === "boolean" ? cfg.ksi : labelKsi);
+const predictedMode = ksi ? "ksi" : "slight";
+
+el("result").textContent = cfg.label || (ksi ? "KSI" : "Slight");
+el("result").dataset.prob = String(probability);
+el("result").dataset.threshold = String(threshold);
+el("result").dataset.ksi = ksi ? "1" : "0";
+el("percent").textContent = Number.isFinite(probability)
+  ? (probability * 100).toFixed(2) + "%"
+  : "";
+el("decisionLine").textContent = Number.isFinite(threshold)
+  ? "Decision threshold " + threshold.toFixed(3) + (cfg.decision_mode ? " · " + cfg.decision_mode : "")
+  : "";
+el("weather").textContent = [
+  night ? "NIGHT" : "DAYLIGHT",
+  snow ? "SNOW" : "",
+  rain ? "RAIN" : "",
+  wet ? "WET ROAD" : "",
+  fog ? "FOG" : "",
+  ice ? "ICE" : ""
+].filter(Boolean).join(" · ");
+el("disclaimer").textContent = cfg.disclaimer || "";
+el("mechanism").textContent = cfg.mechanism || "";
+el("severity").textContent = cfg.severity || cfg.label || "";
+el("ksiProb").textContent = Number.isFinite(probability)
+  ? (probability * 100).toFixed(2) + "%"
+  : "";
+el("decisionThreshold").textContent = Number.isFinite(threshold)
+  ? threshold.toFixed(3) + (cfg.decision_mode ? " · " + cfg.decision_mode : "")
+  : "";
+const conditionList = el("conditions");
+(cfg.conditions || []).forEach(item => {
+  const li = document.createElement("li");
+  li.textContent = item;
+  conditionList.appendChild(li);
+});
+
+function resize(){
+  const rect = c.getBoundingClientRect();
+  W = Math.max(320, rect.width);
+  H = Math.max(280, rect.height);
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  c.width = Math.round(W * d);
+  c.height = Math.round(H * d);
+  g.setTransform(d, 0, 0, d, 0, 0);
+}
+window.addEventListener("resize", resize);
+resize();
+
+function rect(x, y, w, h, color){
+  g.fillStyle = color;
+  g.fillRect(x, y, w, h);
+}
+function circ(x, y, r, color){
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fillStyle = color;
+  g.fill();
+}
+function poly(pts, color){
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for(let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.closePath();
+  g.fillStyle = color;
+  g.fill();
+}
+function line(x, y, x2, y2, color, width){
+  g.strokeStyle = color;
+  g.lineWidth = width;
+  g.beginPath();
+  g.moveTo(x, y);
+  g.lineTo(x2, y2);
+  g.stroke();
+}
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+function drawCar(x, y, scale, color, plate){
+  const s = scale * Math.min(1.05, W / 900);
+  const cw = 118 * s, ch = 86 * s;
+  circ(x, y + ch * 0.08, cw * 0.42, "#06121bcc");
+  rect(x - cw * 0.48, y - ch * 0.28, cw * 0.12, ch * 0.42, "#07101a");
+  rect(x + cw * 0.36, y - ch * 0.28, cw * 0.12, ch * 0.42, "#07101a");
+  g.fillStyle = color;
+  g.beginPath();
+  g.roundRect(x - cw * 0.46, y - ch * 0.78, cw * 0.92, ch * 0.78, 14 * s);
+  g.fill();
+  poly([
+    [x - cw * 0.30, y - ch * 0.68],
+    [x + cw * 0.30, y - ch * 0.68],
+    [x + cw * 0.22, y - ch * 0.42],
+    [x - cw * 0.22, y - ch * 0.42]
+  ], "#16384f");
+  rect(x - cw * 0.40, y - ch * 0.24, cw * 0.16, ch * 0.10, "#ffd0d0");
+  rect(x + cw * 0.24, y - ch * 0.24, cw * 0.16, ch * 0.10, "#ffd0d0");
+  if(plate){
+    g.fillStyle = "#f7fbff";
+    g.textAlign = "center";
+    g.font = "700 " + Math.max(9, 11 * s) + "px Segoe UI, Arial";
+    g.fillText(plate, x, y - ch * 0.08);
+  }
+  return {w: cw, h: ch};
+}
+
+function timeline(){
+  const t = Math.min(1, Math.max(0, progress));
+  if(mode === "normal"){
+    return {approach: t, react: 0, done: ended, impact: false};
+  }
+  const impactAt = 0.62;
+  const approach = Math.min(1, t / impactAt);
+  const react = t < impactAt ? 0 : Math.min(1, (t - impactAt) / 0.28);
+  return {approach, react, done: ended, impact: t >= impactAt};
+}
+
+function draw(){
+  const phase = timeline();
+  const severe = mode === "ksi";
+  const meetX = W * 0.50;
+  const meetY = H * 0.56;
+  let shakeX = 0, shakeY = 0;
+  if(phase.impact && mode !== "normal"){
+    const amp = (severe ? 8 : 2.2) * (1 - phase.react);
+    shakeX = Math.sin(phase.react * 46) * amp;
+    shakeY = Math.cos(phase.react * 37) * amp * 0.65;
+  }
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  g.setTransform(dpr, 0, 0, dpr, shakeX * dpr, shakeY * dpr);
+
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, night ? "#07111f" : "#1a86c4");
+  sky.addColorStop(1, night ? "#1b3d5c" : "#d5f1fb");
+  rect(0, 0, W, H, sky);
+  if(night){
+    circ(W * 0.82, H * 0.14, 18, "#fff6d4");
+    for(let i = 0; i < 40; i++) circ((i * 97) % W, (i * 53) % (H * 0.34), 1.1, "#e7f7ff");
+  }else{
+    circ(W * 0.82, H * 0.14, 22, "#ffe27a");
+  }
+
+  const horizon = H * 0.40;
+  poly([[0, H * 0.46], [W * 0.22, H * 0.28], [W * 0.42, H * 0.46], [W * 0.62, H * 0.26], [W, H * 0.42], [W, H * 0.58], [0, H * 0.58]],
+    snow ? "#c5d7e4" : night ? "#17344c" : "#5e93a8");
+  rect(0, H * 0.50, W, H * 0.50, snow ? "#e7f2f6" : "#1f5a46");
+  poly([[W * 0.46, horizon], [W * 0.54, horizon], [W * 0.96, H], [W * 0.04, H]], "#8ea0ad");
+  poly([[W * 0.47, horizon], [W * 0.53, horizon], [W * 0.90, H], [W * 0.10, H]],
+    snow ? "#c3d3df" : wet ? "#1d3b50" : ice ? "#b7cddd" : "#314556");
+
+  for(let i = 0; i < 10; i++){
+    const z = (i / 10 + travel * 0.00028) % 1;
+    const y = horizon + z * z * (H - horizon);
+    const y2 = horizon + Math.min(1, z + 0.045) ** 2 * (H - horizon);
+    line(W * 0.5, y, W * 0.5, y2, "#fff3c4", Math.max(2, z * 6));
+  }
+  for(let i = 0; i < 16; i++){
+    const z = (i / 16 + travel * 0.00012) % 1;
+    if(z < 0.08) continue;
+    const side = i % 2 === 0 ? -1 : 1;
+    const x = W * 0.5 + side * (W * 0.06 + z * W * 0.48);
+    const y = horizon + z * z * (H - horizon);
+    const s = 7 + z * 34;
+    line(x, y, x, y - s, "#6d5340", Math.max(2, z * 3));
+    poly([[x, y - s * 1.8], [x - s * 0.5, y - s * 0.35], [x + s * 0.5, y - s * 0.35]], snow ? "#e7f7fb" : "#124c3e");
+  }
+
+  const recoil = phase.impact ? Math.sin(Math.min(1, phase.react) * Math.PI) * (severe ? 18 : 6) : 0;
+  let other, ego, flash;
+  if(mode === "normal"){
+    const pass = phase.approach;
+    other = {x: W * 0.38, y: lerp(H * 0.36, H * 1.08, pass), scale: lerp(0.42, 0.82, pass)};
+    ego = {x: W * 0.64, y: H * 0.78, scale: 0.92};
+    flash = null;
+  }else{
+    const a = phase.approach;
+    const close = severe ? 0.025 : 0;
+    other = {
+      x: lerp(W * 0.36, W * (0.445 + close), a) - recoil,
+      y: lerp(H * 0.34, H * 0.56, a) - recoil * 0.25,
+      scale: lerp(0.46, severe ? 0.76 : 0.68, a)
+    };
+    ego = {
+      x: lerp(W * 0.66, W * (0.555 - close), a) + recoil,
+      y: lerp(H * 0.86, H * 0.66, a) + recoil * 0.15,
+      scale: 0.90
+    };
+    flash = {x: (other.x + ego.x) / 2, y: (other.y + ego.y) / 2 - 18};
+  }
+
+  if(phase.impact && severe){
+    line(other.x, other.y + 8, other.x - 18 - recoil, other.y + 26, "#d7e4ee99", 3);
+    line(ego.x, ego.y + 6, ego.x + 16 + recoil, ego.y + 22, "#d7e4ee99", 3);
+  }
+  drawCar(other.x, other.y, other.scale, "#f0b429", "");
+  drawCar(ego.x, ego.y, ego.scale, "#e23b55", "SAFEROUTE");
+
+  if(flash && phase.impact){
+    const life = 1 - phase.react;
+    const radius = (severe ? 28 : 12) * (0.55 + life);
+    circ(flash.x, flash.y, radius, severe ? "#ffd27aaa" : "#fff6d066");
+    circ(flash.x, flash.y, Math.max(4, radius * 0.38), "#fffdf8dd");
+  }
+
+  if(snow || rain){
+    for(let i = 0; i < 120; i++){
+      const px = (i * 67 + frame * (snow ? 0.6 : 2.2)) % W;
+      const py = (i * 41 + frame * (snow ? 1.1 : 4.2)) % H;
+      if(snow) circ(px, py, 1.4, "#f7fbffdd");
+      else line(px, py, px + 4, py + 12, "#b7e7ff99", 1.4);
+    }
+  }
+  if(fog) rect(0, H * 0.22, W, H * 0.55, "#d5e7f066");
+
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if(phase.done && mode !== "normal"){
+    const title = severe ? "KSI — Serious Incident Demo" : "SLIGHT — Minor Incident Demo";
+    g.fillStyle = "#041018ee";
+    g.beginPath();
+    g.roundRect(18, H - 48, Math.min(420, W - 36), 34, 10);
+    g.fill();
+    g.fillStyle = severe ? "#ffd7a1" : "#d8fff0";
+    g.font = "700 15px Segoe UI, Arial";
+    g.textAlign = "left";
+    g.fillText(title, 32, H - 26);
+  }
+}
+
+function setPauseLabel(){
+  el("pause").textContent = paused ? "RESUME" : "PAUSE";
+}
+function reset(which){
+  running = false;
+  paused = false;
+  ended = false;
+  progress = 0;
+  travel = 0;
+  if(which) mode = which;
+  el("status").textContent = "READY TO DRIVE";
+  el("journey").textContent = mode === "normal" ? "Journey 0%" : "Approach 0%";
+  setPauseLabel();
+  draw();
+}
+function start(){
+  if(ended){
+    const keep = mode;
+    reset(keep);
+  }
+  paused = false;
+  running = true;
+  ended = false;
+  el("status").textContent = "DRIVING";
+  setPauseLabel();
+}
+let lastTick = performance.now();
+function loop(now){
+  if(!now) now = performance.now();
+  const dt = Math.min(48, Math.max(0, now - lastTick));
+  lastTick = now;
+  const frames = dt / 16.67;
+  frame += frames;
+  if(running){
+    progress += speed * 0.00072 * frames;
+    travel += speed * 7 * frames;
+    if(progress >= 1){
+      progress = 1;
+      running = false;
+      ended = true;
+    }
+  }
+  if(ended && mode !== "normal"){
+    el("status").textContent = mode === "ksi" ? "KSI INCIDENT" : "SLIGHT INCIDENT";
+    el("journey").textContent = "Incident complete";
+  }else if(ended){
+    el("status").textContent = "JOURNEY COMPLETE";
+    el("journey").textContent = "Journey 100%";
+  }else if(running){
+    el("status").textContent = "DRIVING";
+    if(mode === "normal"){
+      el("journey").textContent = "Journey " + Math.round(progress * 100) + "%";
+    }else if(progress < 0.62){
+      el("journey").textContent = "Approach " + Math.round((progress / 0.62) * 100) + "%";
+    }else{
+      el("journey").textContent = "Impact";
+    }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+el("drive").onclick = () => { reset(predictedMode); start(); };
+el("incident").onclick = () => { reset(predictedMode); start(); };
+el("normal").onclick = () => { reset("normal"); start(); };
+el("restart").onclick = () => { reset(mode); start(); };
+el("pause").onclick = () => {
+  if(running){
+    running = false;
+    paused = true;
+    el("status").textContent = "PAUSED";
+    setPauseLabel();
+  }else if(paused){
+    running = true;
+    paused = false;
+    el("status").textContent = "DRIVING";
+    setPauseLabel();
+  }
+};
+el("speed").oninput = e => {
+  speed = Number(e.target.value);
+  el("pace").textContent = speed + "×";
+};
+window.__simState = () => ({
+  running, paused, ended, progress, mode, ksi, threshold, probability,
+  status: el("status").textContent,
+  journey: el("journey").textContent,
+  mechanism: el("mechanism").textContent,
+  conditions: el("conditions").innerText,
+  severity: el("severity").textContent,
+  disclaimer: el("disclaimer").textContent,
+  pauseLabel: el("pause").textContent
+});
+mode = predictedMode;
+reset(predictedMode);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

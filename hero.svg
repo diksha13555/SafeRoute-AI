@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 430">
+<defs>
+ <linearGradient id="sky" x2="0" y2="1">
+  <stop stop-color="#051426"/>
+  <stop offset=".65" stop-color="#124569"/>
+  <stop offset="1" stop-color="#08263c"/>
+ </linearGradient>
+ <linearGradient id="road" x2="0" y2="1">
+  <stop stop-color="#25445d"/>
+  <stop offset="1" stop-color="#081521"/>
+ </linearGradient>
+ <linearGradient id="glass">
+  <stop stop-color="#00d8ef" stop-opacity=".3"/>
+  <stop offset="1" stop-color="#8d43ff" stop-opacity=".1"/>
+ </linearGradient>
+ <filter id="glow">
+  <feGaussianBlur stdDeviation="9"/>
+ </filter>
+</defs>
+<rect width="1440" height="430" fill="url(#sky)"/>
+<circle cx="1150" cy="75" r="39" fill="#eaf9ff" opacity=".9"/>
+<circle cx="1150" cy="75" r="65" fill="#b9edff" opacity=".13" filter="url(#glow)"/>
+<g fill="#d9f8ff" opacity=".6">
+ <circle cx="870" cy="38" r="2"/><circle cx="995" cy="92" r="2"/>
+ <circle cx="1320" cy="58" r="2"/><circle cx="780" cy="122" r="2"/>
+ <circle cx="1400" cy="114" r="2"/>
+</g>
+<path d="M0 300L180 170 300 260 490 125 700 300 930 145 1130 300 1300 160 1440 300V430H0Z" fill="#173952"/>
+<path d="M0 345L220 245 350 315 620 225 860 330 1120 210 1440 320V430H0Z" fill="#0b283c"/>
+<path d="M480 430L805 230 900 230 1440 430Z" fill="url(#road)"/>
+<path d="M760 430L848 230" stroke="#c6f4ff" stroke-width="5" stroke-dasharray="25 24" opacity=".65"/>
+<path d="M515 430L811 230M1370 430L894 230" stroke="#37d8ee" stroke-width="4" opacity=".55"/>
+<path d="M930 375L980 307 1090 307 1145 375Z" fill="#05131f"/>
+<path d="M952 355L988 316 1075 316 1118 355Z" fill="#163e5d"/>
+<path d="M955 367H982M1095 367H1122" stroke="#ff547e" stroke-width="12" stroke-linecap="round"/>
+<path d="M962 360L1107 360" stroke="#67e8f9" stroke-width="2" opacity=".65"/>
+<g fill="none" stroke="#22d3ee" opacity=".35">
+ <path d="M770 110L960 110L1040 180"/>
+ <path d="M780 140L970 140L1030 205"/>
+ <circle cx="970" cy="140" r="8"/>
+</g>
+<rect x="0" y="0" width="1440" height="430" fill="url(#glass)" opacity=".45"/>
+</svg>
