@@ -35,7 +35,7 @@ Files required to run the dashboard:
 | `simulator.html` | Fictional road animation |
 | `hero.svg` | Page header image |
 | `requirements.txt` | Python dependencies |
-| `.python-version` | Python 3.13 |
+| `.python-version` | Records the intended Python version, 3.13. Community Cloud does not read this file. |
 
 Paths inside `app.py` are resolved from the project directory, so the same files work on Linux and Windows.
 
@@ -119,8 +119,11 @@ streamlit run app.py
 
 1. Push this repository to GitHub.
 2. In Streamlit Community Cloud, create an app from that repository.
-3. Set the main file to `app.py` and the Python version to **3.13**.
-4. The dependency file is `requirements.txt`. No secrets and no extra system packages are required.
+3. Set the main file to `app.py`.
+4. Open **Advanced settings** and set the Python version to **3.13**. Community Cloud ignores `.python-version` and `runtime.txt`. Python cannot be changed on an existing app; delete it and deploy again with 3.13 selected.
+5. The dependency file is `requirements.txt`. No secrets and no extra system packages are required.
+
+Streamlit 1.51 installs `pyarrow>=7,<22`. PyArrow 21.0.0 is the newest release in that range, and it publishes a Linux wheel for Python 3.13. It does not publish a Python 3.14 wheel, so a 3.14 environment tries to compile PyArrow and the build fails. The pinned packages in `requirements.txt` all have Linux wheels or pure-Python wheels that install on Python 3.13.
 
 The V3 checkpoint is included. V2 and V4 checkpoints are not.
 
